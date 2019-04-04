@@ -33,14 +33,28 @@ fn main() {
     let filename = matches.value_of("FILE").unwrap();
     let mut img = image::open(filename).unwrap();
 
-    let p = img.get_pixel(100,100);
-    //test
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
     let mut c = ColorSpec::new();
-    c.set_fg(Some(Color::Rgb(p.data[0], p.data[1], p.data[2]))).set_bold(true);
-    stdout.set_color(&c);
-    writeln!(&mut stdout, "green text!");
+    let (width, height) = img.dimensions();
+    println!("{}x{}", width, height);
 
+    let mut counter = 0;
+    let chars = ["\u{2580}","\u{2581}","\u{2582}","\u{2583}","\u{2584}","\u{2585}","\u{2586}","\u{2587}","\u{2588}","\u{2589}",
+    "\u{258A}", "\u{258B}", "\u{258C}", "\u{258D}", "\u{258E}", "\u{258F}", "\u{2590}"];
+    for block in chars.iter() {
+        println!("Trying with block: {}", block);
+        for p in img.pixels() {
+            counter = counter + 1;
+            c.set_fg(Some(Color::Rgb(p.2[0], p.2[1], p.2[2]))).set_bold(false);
+            stdout.set_color(&c);
+            write!(&mut stdout, "{}", block);
+            //or 258B
+            if counter == width {
+                writeln!(&mut stdout, "");
+                counter = 0;
+            }
+        }
+    }
 
     if matches.is_present("mirror") {
         img = img.fliph();
