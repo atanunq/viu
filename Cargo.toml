@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 image = "*"
 clap = "2.32.0"
+termcolor = "1"
