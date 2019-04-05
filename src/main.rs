@@ -1,8 +1,9 @@
 extern crate image;
 extern crate clap;
 
+use std::env;
 use clap::{Arg, App};
-use image::{GenericImageView};
+use image::{GenericImageView, FilterType};
 
 use std::io::Write;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
@@ -35,12 +36,25 @@ fn main() {
 
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
     let mut c = ColorSpec::new();
-    let (width, height) = img.dimensions();
+    let (mut width, height) = img.dimensions();
     println!("{}x{}", width, height);
 
     let mut counter = 0;
-    let chars = ["\u{2580}","\u{2581}","\u{2582}","\u{2583}","\u{2584}","\u{2585}","\u{2586}","\u{2587}","\u{2588}","\u{2589}",
-    "\u{258A}", "\u{258B}", "\u{258C}", "\u{258D}", "\u{258E}", "\u{258F}", "\u{2590}"];
+    //let chars = ["\u{2580}","\u{2581}","\u{2582}","\u{2583}","\u{2584}","\u{2585}","\u{2586}","\u{2587}","\u{2588}","\u{2589}",
+    //"\u{258A}", "\u{258B}", "\u{258C}", "\u{258D}", "\u{258E}", "\u{258F}", "\u{2590}"];
+    let chars = ["\u{2589}"];
+    //might need env COLUMNS=x cargo run
+    match env::var("COLUMNS") {
+        Ok(cols) => {
+            let i = cols.parse::<u32>().unwrap();
+            if width > i {
+                println!("Resizing to {}x{}", i, height);
+                img = img.resize(i, height, FilterType::Nearest);
+                width = i;
+            }
+        },
+        Err(_) => {},
+    };
     for block in chars.iter() {
         println!("Trying with block: {}", block);
         for p in img.pixels() {
