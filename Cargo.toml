@@ -5,6 +5,7 @@ authors = ["Atanas Yankov <atanas.yankov98@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+libc = "0.2"
 image = "*"
 clap = "2.32.0"
 termcolor = "1"

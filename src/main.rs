@@ -7,7 +7,10 @@ use image::GenericImageView;
 use std::io::Write;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
+mod size;
+
 fn main() {
+    println!("{:?}", size::get_size());
     let matches = App::new("Experiment")
         .version("1.0")
         .author("Atanas Yankov")
