@@ -1,7 +1,7 @@
 extern crate libc;
 
-use libc::{c_ushort, STDOUT_FILENO, TIOCGWINSZ};
 use libc::ioctl;
+use libc::{c_ushort, STDOUT_FILENO, TIOCGWINSZ};
 
 #[repr(C)]
 struct winsize {
@@ -11,12 +11,17 @@ struct winsize {
     ws_ypixel: c_ushort,
 }
 
-pub fn get_size() -> Result<(isize, isize), &'static str> {
-    let w = winsize {ws_row: 0, ws_col: 0, ws_xpixel: 0, ws_ypixel: 0};
+pub fn get_size() -> Result<(u32, u32), &'static str> {
+    let w = winsize {
+        ws_row: 0,
+        ws_col: 0,
+        ws_xpixel: 0,
+        ws_ypixel: 0,
+    };
     let r = unsafe { ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) };
 
     match r {
-        0 => Ok((w.ws_col as isize, w.ws_row as isize)),
+        0 => Ok((w.ws_col as u32, w.ws_row as u32)),
         _ => Err("Operation Failed"),
     }
 }

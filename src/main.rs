@@ -2,7 +2,7 @@ extern crate clap;
 extern crate image;
 
 use clap::{value_t, App, Arg};
-use image::GenericImageView;
+use image::{FilterType, GenericImageView};
 
 use std::io::Write;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
@@ -10,7 +10,6 @@ use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 mod size;
 
 fn main() {
-    println!("{:?}", size::get_size());
     let matches = App::new("Experiment")
         .version("1.0")
         .author("Atanas Yankov")
@@ -60,16 +59,17 @@ fn main() {
     let mut c = ColorSpec::new();
 
     let mut counter = 0;
-    let mut print_img = &img;
+    let print_img;
     let mut modified_img;
     let (width, height) = img.dimensions();
     let (mut print_width, mut print_height) = img.dimensions();
-    let chars = [
+    /*let chars = [
         "\u{2580}", "\u{2581}", "\u{2582}", "\u{2583}", "\u{2584}", "\u{2585}", "\u{2586}",
         "\u{2587}", "\u{2588}", "\u{2589}", "\u{258A}", "\u{258B}", "\u{258C}", "\u{258D}",
         "\u{258E}", "\u{258F}", "\u{2590}",
-    ];
-    //let chars = ["\u{2589}"];
+    ];*/
+    //TODO: 2580 is a upperhalf block, this will increase resolution and fix aspect ratio
+    let chars = ["\u{2589}"];
 
     let specified_width = matches.is_present("width");
     let specified_height = matches.is_present("height");
@@ -87,6 +87,27 @@ fn main() {
         print_img = &modified_img;
     } else if specified_width || specified_height {
         modified_img = img.thumbnail(print_width, print_height);
+        print_img = &modified_img;
+    } else {
+        match size::get_size() {
+            Ok((w, h)) => {
+                //only change values if the image needs to be resized (is bigger than the
+                //terminal's size
+                if width > w {
+                    print_width = w;
+                }
+                if height > h {
+                    print_height = h;
+                }
+            }
+            Err(e) => {
+                eprintln!("{}", e);
+                //could not get terminal width => we fall back to a predefined value
+                //maybe use env variable?
+                print_width = 50;
+            }
+        };
+        modified_img = img.resize(print_width, print_height, FilterType::Triangle);
         print_img = &modified_img;
     }
     for block in chars.iter() {
@@ -107,6 +128,7 @@ fn main() {
                 counter = 0;
             }
         }
+
         //reset the color of stdout
         c.clear();
         stdout
@@ -114,10 +136,12 @@ fn main() {
             .unwrap_or_else(|e| eprintln!("Error while changing terminal colors: {}", e));
     }
 
+    let (print_width, print_height) = print_img.dimensions();
     println!(
         "From {}x{} the image is now {}x{}",
         width, height, print_width, print_height
     );
+
     if matches.is_present("overwrite") {
         img.save(filename).expect("Failed saving image!");
     }
