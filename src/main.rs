@@ -68,8 +68,7 @@ fn main() {
         "\u{2587}", "\u{2588}", "\u{2589}", "\u{258A}", "\u{258B}", "\u{258C}", "\u{258D}",
         "\u{258E}", "\u{258F}", "\u{2590}",
     ];*/
-    //TODO: 2580 is a upperhalf block, this will increase resolution and fix aspect ratio
-    let chars = ["\u{2589}"];
+    let chars = ["\u{2584}"];
 
     let specified_width = matches.is_present("width");
     let specified_height = matches.is_present("height");
@@ -80,7 +79,7 @@ fn main() {
     }
     if specified_height {
         let new_height = value_t!(matches, "height", u32).unwrap_or_else(|e| e.exit());
-        print_height = new_height;
+        print_height = 2 * new_height;
     }
     if specified_width && specified_height {
         modified_img = img.thumbnail_exact(print_width, print_height);
@@ -97,7 +96,7 @@ fn main() {
                     print_width = w;
                 }
                 if height > h {
-                    print_height = h;
+                    print_height = 2 * h;
                 }
             }
             Err(e) => {
@@ -113,32 +112,13 @@ fn main() {
     for block in chars.iter() {
         println!("Trying with block: {}", block);
         let (width, height) = print_img.dimensions();
-        /*for p in print_img.pixels() {
-            counter = counter + 1;
-            c.set_fg(Some(Color::Rgb(p.2[0], p.2[1], p.2[2])))
-                .set_bg(Some(Color::White))
-                .set_bold(false);
-            stdout
-                .set_color(&c)
-                .unwrap_or_else(|e| eprintln!("Error while changing terminal colors: {}", e));
-            write!(&mut stdout, "{}", block)
-                .unwrap_or_else(|e| eprintln!("Error while displaying image: {}", e));
-            if counter == width {
-                c.clear();
-                stdout
-                    .set_color(&c)
-                    .unwrap_or_else(|e| eprintln!("Error while changing terminal colors: {}", e));
-
-                writeln!(&mut stdout, "")
-                    .unwrap_or_else(|e| eprintln!("Error while displaying image: {}", e));
-                counter = 0;
-            }
-        }*/
         let mut curr_row = 0;
         let mut curr_col = 0;
         let pixels = print_img.raw_pixels();
-        let odd = height % 2;
-        while curr_row < height || curr_col < width {
+        println!("Size: {:?}", (width, height));
+        let odd = height % 2 == 1;
+
+        while curr_row < height / 2 {
             if curr_col == width {
                 curr_row += 1;
                 curr_col = 0;
@@ -150,20 +130,54 @@ fn main() {
 
                 writeln!(&mut stdout, "")
                     .unwrap_or_else(|e| eprintln!("Error while displaying image: {}", e));
-            }
-
-            //fix index out of bounds
-            let start = (3*(curr_row*width + curr_col)) as usize;
-            //println!("{}", start);
-            c.set_fg(Some(Color::Rgb(pixels[start], pixels[start + 1], pixels[start + 2])))
-                //.set_bg(Some(Color::White))
+            } else {
+                c.clear();
+                stdout.set_color(&c).unwrap();
+                let bg_start = (3 * (2 * curr_row * width + curr_col)) as usize;
+                let fg_start = (3 * ((2 * curr_row + 1) * width + curr_col)) as usize;
+                //println!("FG: {}, BG: {}", fg_start, bg_start);
+                //println!("{}", start);
+                c.set_fg(Some(Color::Rgb(
+                    pixels[fg_start],
+                    pixels[fg_start + 1],
+                    pixels[fg_start + 2],
+                )))
+                .set_bg(Some(Color::Rgb(
+                    pixels[bg_start],
+                    pixels[bg_start + 1],
+                    pixels[bg_start + 2],
+                )))
                 .set_bold(false);
-            stdout
-                .set_color(&c)
-                .unwrap_or_else(|e| eprintln!("Error while changing terminal colors: {}", e));
-            write!(&mut stdout, "{}", block)
+                stdout
+                    .set_color(&c)
+                    .unwrap_or_else(|e| eprintln!("Error while changing terminal colors: {}", e));
+                write!(&mut stdout, "{}", block)
+                    .unwrap_or_else(|e| eprintln!("Error while displaying image: {}", e));
+                curr_col += 1;
+            }
+        }
+        //check if there is a line of pixels that are not drawn yet
+        if odd {
+            curr_col = 0;
+            while curr_col < width {
+                c.clear();
+                stdout.set_color(&c).unwrap();
+                let fg_start = (3 * (2 * curr_row * width + curr_col)) as usize;
+                c.set_fg(Some(Color::Rgb(
+                    pixels[fg_start],
+                    pixels[fg_start + 1],
+                    pixels[fg_start + 2],
+                )))
+                .set_bold(false);
+                stdout
+                    .set_color(&c)
+                    .unwrap_or_else(|e| eprintln!("Error while changing terminal colors: {}", e));
+                write!(&mut stdout, "{}", "\u{2580}")
+                    .unwrap_or_else(|e| eprintln!("Error while displaying image: {}", e));
+                curr_col += 1;
+            }
+            writeln!(&mut stdout, "")
                 .unwrap_or_else(|e| eprintln!("Error while displaying image: {}", e));
-            curr_col += 1;
         }
 
         //reset the color of stdout
@@ -172,8 +186,6 @@ fn main() {
             .set_color(&c)
             .unwrap_or_else(|e| eprintln!("Error while changing terminal colors: {}", e));
     }
-
-    println!("{:?}", print_img.raw_pixels().len());
 
     let (print_width, print_height) = print_img.dimensions();
     println!(
