@@ -22,6 +22,6 @@ pub fn get_size() -> Result<(u32, u32), &'static str> {
 
     match r {
         0 => Ok((w.ws_col as u32, w.ws_row as u32)),
-        _ => Err("Operation Failed"),
+        _ => Err("Could not get terminal size, using default width..."),
     }
 }
