@@ -21,7 +21,7 @@ pub fn get_size() -> Result<(u32, u32), &'static str> {
     let r = unsafe { ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) };
 
     match r {
-        0 => Ok((w.ws_col as u32, w.ws_row as u32)),
+        0 => Ok((u32::from(w.ws_col), u32::from(w.ws_row))),
         _ => Err("Could not get terminal size, using default width..."),
     }
 }

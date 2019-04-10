@@ -2,6 +2,9 @@ use image::{DynamicImage, GenericImageView, Pixel, Rgba};
 use std::io::Write;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
+const UPPER_HALF_BLOCK: &str = "\u{2580}";
+const LOWER_HALF_BLOCK: &str = "\u{2584}";
+
 pub fn print(img: &DynamicImage) {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
 
@@ -25,7 +28,7 @@ pub fn print(img: &DynamicImage) {
             curr_col_px += 1;
         }
         //if the buffer is full start adding the second row of pixels
-        if is_buffer_full(&buffer, &width) {
+        if is_buffer_full(&buffer, width) {
             if mode == Status::TopRow {
                 mode = Status::BottomRow;
                 _curr_row_px += 1;
@@ -42,7 +45,7 @@ pub fn print(img: &DynamicImage) {
     }
 
     //flush the buffer (will be invoked if the image has an odd height)
-    if buffer.len() != 0 {
+    if !buffer.is_empty() {
         flush_buffer(&mut buffer);
     }
 
@@ -58,7 +61,7 @@ fn print_buffer(buff: &mut Vec<ColorSpec>) {
             .set_color(&c)
             .unwrap_or_else(|e| eprintln!("Error while changing terminal colors: {}", e));
 
-        write!(&mut stdout, "{}", "\u{2584}")
+        write!(&mut stdout, "{}", LOWER_HALF_BLOCK)
             .unwrap_or_else(|e| eprintln!("Error while displaying image: {}", e));
     }
 
@@ -78,7 +81,7 @@ fn flush_buffer(buff: &mut Vec<ColorSpec>) {
             .set_color(&new_c)
             .unwrap_or_else(|e| eprintln!("Error while changing terminal colors: {}", e));
 
-        write!(&mut stdout, "{}", "\u{2580}")
+        write!(&mut stdout, "{}", UPPER_HALF_BLOCK)
             .unwrap_or_else(|e| eprintln!("Error while displaying image: {}", e));
     }
 
@@ -88,7 +91,7 @@ fn flush_buffer(buff: &mut Vec<ColorSpec>) {
 }
 
 fn write_newline(stdout: &mut StandardStream) {
-    writeln!(stdout, "").unwrap_or_else(|e| eprintln!("Error while displaying image: {}", e));
+    writeln!(stdout).unwrap_or_else(|e| eprintln!("Error while displaying image: {}", e));
 }
 
 fn get_color(p: Rgba<u8>) -> Color {
@@ -110,8 +113,8 @@ enum Status {
     TopRow,
     BottomRow,
 }
-fn is_buffer_full(buffer: &Vec<ColorSpec>, width: &u32) -> bool {
-    buffer.len() == *width as usize
+fn is_buffer_full(buffer: &[ColorSpec], width: u32) -> bool {
+    buffer.len() == width as usize
 }
 
 #[test]
