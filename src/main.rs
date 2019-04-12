@@ -8,10 +8,10 @@ mod printer;
 mod size;
 
 fn main() {
-    let matches = App::new("Experiment")
+    let matches = App::new("viu")
         .version("1.0")
         .author("Atanas Yankov")
-        .about("We will see what it does later on...")
+        .about("View images directly from the terminal.")
         .arg(
             Arg::with_name("mirror")
                 .short("m")
