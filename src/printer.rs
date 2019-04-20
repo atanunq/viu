@@ -14,6 +14,10 @@ pub fn print(img: &DynamicImage) {
     let mut curr_col_px = 0;
     let mut buffer: Vec<ColorSpec> = Vec::with_capacity(width as usize);
     let mut mode: Status = Status::TopRow;
+
+    //iterate pixels and fill a buffer that contains 2 rows of pixels
+    //2 rows translate to 1 row in the terminal by using half block, foreground and background
+    //colors
     for pixel in img.pixels() {
         if mode == Status::TopRow {
             let mut c = ColorSpec::new();
@@ -38,50 +42,45 @@ pub fn print(img: &DynamicImage) {
             else if curr_col_px == width {
                 curr_col_px = 0;
                 _curr_row_px += 1;
-                print_buffer(&mut buffer);
+                print_buffer(&mut buffer, false);
                 mode = Status::TopRow;
             }
         }
     }
 
-    //flush the buffer (will be invoked if the image has an odd height)
+    //buffer will be flushed if the image has an odd height
     if !buffer.is_empty() {
-        flush_buffer(&mut buffer);
+        print_buffer(&mut buffer, true);
     }
 
     clear_printer(&mut stdout);
 }
 
-//TODO: print_buffer and flush_buffer are too identical
-fn print_buffer(buff: &mut Vec<ColorSpec>) {
+fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
 
-    for c in buff.iter() {
-        stdout
-            .set_color(&c)
-            .unwrap_or_else(|e| eprintln!("Error while changing terminal colors: {}", e));
-
-        write!(&mut stdout, "{}", LOWER_HALF_BLOCK)
-            .unwrap_or_else(|e| eprintln!("Error while displaying image: {}", e));
-    }
-
-    clear_printer(&mut stdout);
-    write_newline(&mut stdout);
-    buff.clear();
-}
-fn flush_buffer(buff: &mut Vec<ColorSpec>) {
-    let mut stdout = StandardStream::stdout(ColorChoice::Always);
+    let mut out_color;
+    let mut out_char;
+    let mut new_color;
 
     for c in buff.iter() {
-        let mut new_c = ColorSpec::new();
-        let bg = c.bg().unwrap();
-        new_c.set_fg(Some(*bg));
-
+        //if we need to flush it means that we must print only one row with UPPER_HALF_BLOCK
+        //because it will be only the last row which contains 1 pixel
+        if is_flush {
+            new_color = ColorSpec::new();
+            let bg = c.bg().unwrap();
+            new_color.set_fg(Some(*bg));
+            out_color = &new_color;
+            out_char = UPPER_HALF_BLOCK;
+        } else {
+            out_color = c;
+            out_char = LOWER_HALF_BLOCK;
+        }
         stdout
-            .set_color(&new_c)
+            .set_color(&out_color)
             .unwrap_or_else(|e| eprintln!("Error while changing terminal colors: {}", e));
 
-        write!(&mut stdout, "{}", UPPER_HALF_BLOCK)
+        write!(stdout, "{}", out_char)
             .unwrap_or_else(|e| eprintln!("Error while displaying image: {}", e));
     }
 
@@ -117,21 +116,26 @@ fn is_buffer_full(buffer: &[ColorSpec], width: u32) -> bool {
     buffer.len() == width as usize
 }
 
-#[test]
-fn test_buffer_full() {
-    let buffer = vec![ColorSpec::new(), ColorSpec::new()];
-    let width = 2;
-    assert!(is_buffer_full(&buffer, &width));
-}
-#[test]
-fn test_print_buffer() {
-    let mut buffer = vec![ColorSpec::new(), ColorSpec::new()];
-    print_buffer(&mut buffer);
-    assert!(buffer.len() == 0);
-}
-#[test]
-fn test_status_eq() {
-    let s1 = Status::TopRow;
-    let s2 = Status::BottomRow;
-    assert!(s1 != s2);
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_buffer_full() {
+        let buffer = vec![ColorSpec::new(), ColorSpec::new()];
+        let width = 2;
+        assert!(is_buffer_full(&buffer, width));
+    }
+    #[test]
+    fn test_print_buffer() {
+        let mut buffer = vec![ColorSpec::new(), ColorSpec::new()];
+        print_buffer(&mut buffer, false);
+        assert!(buffer.len() == 0);
+    }
+    #[test]
+    fn test_status_eq() {
+        let s1 = Status::TopRow;
+        let s2 = Status::BottomRow;
+        assert!(s1 != s2);
+    }
 }
