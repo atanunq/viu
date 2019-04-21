@@ -13,6 +13,18 @@ fn main() {
         .author("Atanas Yankov")
         .about("View images directly from the terminal.")
         .arg(
+            Arg::with_name("FILE")
+                .help("Set the image to manipulate")
+                .required(true)
+                .index(1),
+        )
+        .arg(
+            Arg::with_name("verbose")
+                .short("v")
+                .long("verbose")
+                .help("Output what is going on"),
+        )
+        .arg(
             Arg::with_name("mirror")
                 .short("m")
                 .long("mirror")
@@ -23,26 +35,14 @@ fn main() {
                 .short("w")
                 .long("width")
                 .takes_value(true)
-                .help("Set the preferred width when displaying the image in the terminal"),
+                .help("Resize the image to a provided width"),
         )
         .arg(
             Arg::with_name("height")
                 .short("h")
                 .long("height")
                 .takes_value(true)
-                .help("Set the preferred height when displaying the image in the terminal"),
-        )
-        .arg(
-            Arg::with_name("overwrite")
-                .short("o")
-                .long("overwrite")
-                .help("Set whether the original file should be overwritten"),
-        )
-        .arg(
-            Arg::with_name("FILE")
-                .help("Set the image to manipulate")
-                .required(true)
-                .index(1),
+                .help("Resize the image to a provided height"),
         )
         .get_matches();
 
@@ -52,6 +52,8 @@ fn main() {
     if matches.is_present("mirror") {
         img = img.fliph();
     }
+
+    let verbose = matches.is_present("verbose");
 
     let print_img;
     let mut modified_img;
@@ -70,12 +72,30 @@ fn main() {
         print_height = 2 * new_height;
     }
     if specified_width && specified_height {
+        if verbose {
+            println!(
+                "Both width and height are specified, resizing to {}x{} without preserving aspect ratio...",
+                print_width,
+                print_height
+                );
+        }
         modified_img = img.thumbnail_exact(print_width, print_height);
         print_img = &modified_img;
     } else if specified_width || specified_height {
+        if verbose {
+            println!(
+                "Either width or height is specified, resizing to {}x{} and preserving aspect ratio...",
+                print_width, print_height
+            );
+        }
         modified_img = img.thumbnail(print_width, print_height);
         print_img = &modified_img;
     } else {
+        if verbose {
+            println!(
+                "Neither width, nor height is specified, therefore terminal size will be matched..."
+                );
+        }
         match size::get_size() {
             Ok((w, h)) => {
                 //only change values if the image needs to be resized (is bigger than the
@@ -94,6 +114,12 @@ fn main() {
                 print_width = 50;
             }
         };
+        if verbose {
+            println!(
+                "Usable space is {}x{}, resizing and preserving aspect ratio...",
+                print_width, print_height
+            );
+        }
         modified_img = img.resize(print_width, print_height, FilterType::Triangle);
         print_img = &modified_img;
     }
@@ -102,12 +128,10 @@ fn main() {
 
     let (print_width, print_height) = print_img.dimensions();
     let (width, height) = img.dimensions();
-    println!(
-        "From {}x{} the image is now {}x{}",
-        width, height, print_width, print_height
-    );
-
-    if matches.is_present("overwrite") {
-        img.save(filename).expect("Failed saving image!");
+    if verbose {
+        println!(
+            "From {}x{} the image is now {}x{}",
+            width, height, print_width, print_height
+        );
     }
 }

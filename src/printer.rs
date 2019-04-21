@@ -61,6 +61,7 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
 
     let mut out_color;
     let mut out_char;
+
     let mut new_color;
 
     for c in buff.iter() {
@@ -107,6 +108,8 @@ fn clear_printer(stdout: &mut StandardStream) {
         .set_color(&c)
         .unwrap_or_else(|e| eprintln!("Error while changing terminal colors: {}", e));
 }
+//enum used to keep track where the current line of pixels processed should be displayed - as
+//background or foreground color
 #[derive(PartialEq)]
 enum Status {
     TopRow,
