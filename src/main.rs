@@ -1,8 +1,8 @@
 extern crate clap;
 extern crate image;
 
-use clap::{value_t, App, Arg};
-use image::{FilterType, GenericImageView};
+use clap::{value_t, App, Arg, ArgMatches};
+use image::GenericImageView;
 
 mod printer;
 mod size;
@@ -48,7 +48,10 @@ fn main() {
                 .help("Resize the image to a provided height"),
         )
         .get_matches();
+    run(matches);
+}
 
+fn run(matches: ArgMatches) {
     let filename = matches.value_of("FILE").unwrap();
     let mut img = image::open(filename).unwrap();
 
@@ -58,8 +61,7 @@ fn main() {
 
     let verbose = matches.is_present("verbose");
 
-    let print_img;
-    let mut modified_img;
+    let mut print_img;
     let (width, height) = img.dimensions();
     let (mut print_width, mut print_height) = img.dimensions();
 
@@ -82,8 +84,7 @@ fn main() {
                 print_height
                 );
         }
-        modified_img = img.thumbnail_exact(print_width, print_height);
-        print_img = &modified_img;
+        print_img = img.thumbnail_exact(print_width, print_height);
     } else if specified_width || specified_height {
         if verbose {
             println!(
@@ -91,8 +92,7 @@ fn main() {
                 print_width, print_height
             );
         }
-        modified_img = img.thumbnail(print_width, print_height);
-        print_img = &modified_img;
+        print_img = img.thumbnail(print_width, print_height);
     } else {
         if verbose {
             println!(
@@ -125,11 +125,10 @@ fn main() {
                 print_width, print_height
             );
         }
-        modified_img = img.resize(print_width, print_height, FilterType::Triangle);
-        print_img = &modified_img;
+        print_img = img.thumbnail(print_width, print_height);
     }
 
-    printer::print(print_img);
+    printer::print(&print_img);
 
     let (print_width, print_height) = print_img.dimensions();
     let (width, height) = img.dimensions();
