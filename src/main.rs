@@ -7,6 +7,9 @@ use image::{FilterType, GenericImageView};
 mod printer;
 mod size;
 
+//default width to be used when no options are passed and terminal size could not be computed
+const DEFAULT_PRINT_WIDTH: u32 = 100;
+
 fn main() {
     let matches = App::new("viu")
         .version("1.0")
@@ -108,10 +111,12 @@ fn main() {
                 }
             }
             Err(e) => {
-                eprintln!("{}", e);
+                if verbose {
+                    eprintln!("{}", e);
+                }
                 //could not get terminal width => we fall back to a predefined value
                 //maybe use env variable?
-                print_width = 50;
+                print_width = DEFAULT_PRINT_WIDTH;
             }
         };
         if verbose {
