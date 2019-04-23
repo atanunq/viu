@@ -77,12 +77,8 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
             out_color = c;
             out_char = LOWER_HALF_BLOCK;
         }
-        stdout
-            .set_color(&out_color)
-            .unwrap_or_else(|e| eprintln!("Error while changing terminal colors: {}", e));
-
-        write!(stdout, "{}", out_char)
-            .unwrap_or_else(|e| eprintln!("Error while displaying image: {}", e));
+        change_stdout_color(&mut stdout, out_color);
+        write!(stdout, "{}", out_char).unwrap_or_else(|_| handle_broken_pipe());
     }
 
     clear_printer(&mut stdout);
@@ -91,23 +87,35 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
 }
 
 fn write_newline(stdout: &mut StandardStream) {
-    writeln!(stdout).unwrap_or_else(|e| eprintln!("Error while displaying image: {}", e));
+    writeln!(stdout).unwrap_or_else(|_| handle_broken_pipe());
 }
 
 fn get_color(p: Rgba<u8>) -> Color {
     Color::Rgb(p.data[0], p.data[1], p.data[2])
 }
 
-fn get_pixel_data<T: Pixel>(p: (u32, u32, T)) -> T {
-    p.2
+fn get_pixel_data<T: Pixel>(pixel: (u32, u32, T)) -> T {
+    pixel.2
 }
 
 fn clear_printer(stdout: &mut StandardStream) {
     let c = ColorSpec::new();
-    stdout
-        .set_color(&c)
-        .unwrap_or_else(|e| eprintln!("Error while changing terminal colors: {}", e));
+    change_stdout_color(stdout, &c);
 }
+
+fn change_stdout_color(stdout: &mut StandardStream, color: &ColorSpec) {
+    stdout
+        .set_color(color)
+        .unwrap_or_else(|_| handle_broken_pipe());
+}
+
+//according to https://github.com/rust-lang/rust/issues/46016
+fn handle_broken_pipe() {
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    };
+}
+
 //enum used to keep track where the current line of pixels processed should be displayed - as
 //background or foreground color
 #[derive(PartialEq)]
