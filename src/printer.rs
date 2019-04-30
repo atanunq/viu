@@ -24,13 +24,12 @@ pub fn print(img: &DynamicImage) {
             let color = get_color(get_pixel_data(pixel));
             c.set_bg(Some(color));
             buffer.push(c);
-            curr_col_px += 1;
         } else {
             let color = get_color(get_pixel_data(pixel));
             let spec_to_upg = &mut buffer[curr_col_px as usize];
             spec_to_upg.set_fg(Some(color));
-            curr_col_px += 1;
         }
+        curr_col_px += 1;
         //if the buffer is full start adding the second row of pixels
         if is_buffer_full(&buffer, width) {
             if mode == Status::TopRow {
@@ -61,7 +60,6 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
 
     let mut out_color;
     let mut out_char;
-
     let mut new_color;
 
     for c in buff.iter() {

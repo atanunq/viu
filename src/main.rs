@@ -12,7 +12,7 @@ const DEFAULT_PRINT_WIDTH: u32 = 100;
 
 fn main() {
     let matches = App::new("viu")
-        .version("1.0")
+        .version("0.1")
         .author("Atanas Yankov")
         .about("View images directly from the terminal.")
         .arg(
@@ -97,24 +97,24 @@ fn run(matches: ArgMatches) {
         if specified_width && specified_height {
             if verbose {
                 println!(
-                "Both width and height are specified, resizing to {}x{} without preserving aspect ratio...",
-                print_width,
-                print_height
+                    "Both width and height are specified, resizing to {}x{} without preserving aspect ratio...",
+                    print_width,
+                    print_height
                 );
             }
             print_img = img.thumbnail_exact(print_width, print_height);
         } else if specified_width || specified_height {
             if verbose {
                 println!(
-                "Either width or height is specified, resizing to {}x{} and preserving aspect ratio...",
-                print_width, print_height
-            );
+                    "Either width or height is specified, resizing to {}x{} and preserving aspect ratio...",
+                    print_width, print_height
+                );
             }
             print_img = img.thumbnail(print_width, print_height);
         } else {
             if verbose {
                 println!(
-                "Neither width, nor height is specified, therefore terminal size will be matched..."
+                    "Neither width, nor height is specified, therefore terminal size will be matched..."
                 );
             }
             match size::get_size() {
