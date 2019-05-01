@@ -62,7 +62,7 @@ fn run(matches: ArgMatches) {
     let files: Vec<_> = matches.values_of("FILE").unwrap().collect();
 
     for filename in files.iter() {
-        let mut img = match image::open(filename) {
+        let img = match image::open(filename) {
             Ok(i) => i,
             Err(e) => {
                 eprintln!("\"{}\": {}", filename, e);
@@ -72,9 +72,6 @@ fn run(matches: ArgMatches) {
 
         if matches.is_present("name") {
             println!("{}:", filename);
-        }
-        if matches.is_present("mirror") {
-            img = img.fliph();
         }
 
         let verbose = matches.is_present("verbose");
@@ -92,6 +89,7 @@ fn run(matches: ArgMatches) {
         }
         if specified_height {
             let new_height = value_t!(matches, "height", u32).unwrap_or_else(|e| e.exit());
+            //since 2 pixels are printed per terminal cell, an image with twice the height can be fit
             print_height = 2 * new_height;
         }
         if specified_width && specified_height {
@@ -119,8 +117,8 @@ fn run(matches: ArgMatches) {
             }
             match size::get_size() {
                 Ok((w, h)) => {
-                    //only change values if the image needs to be resized (is bigger than the
-                    //terminal's size
+                    //only change values if the image needs to be resized
+                    //i.e is bigger than the terminal's size
                     if width > w {
                         print_width = w;
                     }
@@ -144,6 +142,10 @@ fn run(matches: ArgMatches) {
                 );
             }
             print_img = img.thumbnail(print_width, print_height);
+        }
+
+        if matches.is_present("mirror") {
+            print_img = print_img.fliph();
         }
 
         printer::print(&print_img);
