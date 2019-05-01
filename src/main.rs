@@ -17,7 +17,7 @@ fn main() {
         .about("View images directly from the terminal.")
         .arg(
             Arg::with_name("FILE")
-                .help("Set the image to manipulate")
+                .help("The image to be displayed")
                 .required(true)
                 .multiple(true)
                 .empty_values(false),
@@ -38,7 +38,7 @@ fn main() {
             Arg::with_name("mirror")
                 .short("m")
                 .long("mirror")
-                .help("Mirror the image"),
+                .help("Display a mirror of the original image"),
         )
         .arg(
             Arg::with_name("width")
