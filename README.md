@@ -25,6 +25,8 @@ A precompiled binary can be downloaded from the [release page](https://www.githu
 
 ### Usage
 
+![Demo](img/demo.gif)
+
 Examples:
 
 - `viu img/smallimage.jpg` 
