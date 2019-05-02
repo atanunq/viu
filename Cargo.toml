@@ -3,9 +3,13 @@ name = "viu"
 version = "0.1.0"
 authors = ["Atanas Yankov <atanas.yankov98@gmail.com>"]
 edition = "2018"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/atanunq/viu"
+description = "View images right from the terminal."
 
 [dependencies]
 libc = "0.2"
-image = "*"
+image = "0.21.1"
 clap = "2.32.0"
 termcolor = "1"

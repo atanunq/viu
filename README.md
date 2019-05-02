@@ -6,7 +6,8 @@ It uses lower half blocks (▄ or \u2584) to fit 2 pixels into a single cell by 
 
 ### Installation
 
-Installation is currently only available from source and a local [Rust environment](https://www.rust-lang.org/tools/install) is required.
+#### From source
+Installation from source required a local [Rust environment](https://www.rust-lang.org/tools/install).
 
 ```bash
 git clone https://github.com/atanunq/viu.git
@@ -18,6 +19,9 @@ cargo install --path .
 # Use
 viu img/smallimage.jpg
 ```
+#### Binary
+A precompiled binary can be downloaded from the [release page](https://www.github.com/atanunq/viu/releases/latest).
+
 
 ### Usage
 

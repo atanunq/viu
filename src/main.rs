@@ -14,7 +14,7 @@ fn main() {
     let matches = App::new("viu")
         .version("0.1")
         .author("Atanas Yankov")
-        .about("View images directly from the terminal.")
+        .about("View images right from the terminal.")
         .arg(
             Arg::with_name("FILE")
                 .help("The image to be displayed")
