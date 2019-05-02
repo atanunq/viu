@@ -10,7 +10,7 @@ pub fn print(img: &DynamicImage) {
 
     let (width, _) = img.dimensions();
 
-    let mut _curr_row_px = 0;
+    let mut curr_row_px = 0;
     let mut curr_col_px = 0;
     let mut buffer: Vec<ColorSpec> = Vec::with_capacity(width as usize);
     let mut mode: Status = Status::TopRow;
@@ -19,28 +19,34 @@ pub fn print(img: &DynamicImage) {
     //2 rows translate to 1 row in the terminal by using half block, foreground and background
     //colors
     for pixel in img.pixels() {
+        //if the alpha of the pixel is 0, print a predefined pixel based on the position in order
+        //to mimic the chess board background
+        let color = if is_pixel_transparent(pixel) {
+            get_transparency_color(curr_row_px, curr_col_px)
+        } else {
+            get_color(get_pixel_data(pixel))
+        };
+
         if mode == Status::TopRow {
             let mut c = ColorSpec::new();
-            let color = get_color(get_pixel_data(pixel));
             c.set_bg(Some(color));
             buffer.push(c);
         } else {
-            let color = get_color(get_pixel_data(pixel));
-            let spec_to_upg = &mut buffer[curr_col_px as usize];
-            spec_to_upg.set_fg(Some(color));
+            let colorspec_to_upg = &mut buffer[curr_col_px as usize];
+            colorspec_to_upg.set_fg(Some(color));
         }
         curr_col_px += 1;
         //if the buffer is full start adding the second row of pixels
         if is_buffer_full(&buffer, width) {
             if mode == Status::TopRow {
                 mode = Status::BottomRow;
-                _curr_row_px += 1;
+                curr_row_px += 1;
                 curr_col_px = 0;
             }
             //only if the second row is completed flush the buffer and start again
             else if curr_col_px == width {
                 curr_col_px = 0;
-                _curr_row_px += 1;
+                curr_row_px += 1;
                 print_buffer(&mut buffer, false);
                 mode = Status::TopRow;
             }
@@ -84,16 +90,28 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
     buff.clear();
 }
 
-fn write_newline(stdout: &mut StandardStream) {
-    writeln!(stdout).unwrap_or_else(|_| handle_broken_pipe());
+fn is_pixel_transparent(pixel: (u32, u32, Rgba<u8>)) -> bool {
+    pixel.2.data[3] == 0
+}
+
+fn get_transparency_color(row: u32, col: u32) -> Color {
+    if row % 2 == col % 2 {
+        Color::Rgb(102, 102, 102)
+    } else {
+        Color::Rgb(153, 153, 153)
+    }
+}
+
+fn get_pixel_data<T: Pixel>(pixel: (u32, u32, T)) -> T {
+    pixel.2
 }
 
 fn get_color(p: Rgba<u8>) -> Color {
     Color::Rgb(p.data[0], p.data[1], p.data[2])
 }
 
-fn get_pixel_data<T: Pixel>(pixel: (u32, u32, T)) -> T {
-    pixel.2
+fn is_buffer_full(buffer: &[ColorSpec], width: u32) -> bool {
+    buffer.len() == width as usize
 }
 
 fn clear_printer(stdout: &mut StandardStream) {
@@ -105,6 +123,10 @@ fn change_stdout_color(stdout: &mut StandardStream, color: &ColorSpec) {
     stdout
         .set_color(color)
         .unwrap_or_else(|_| handle_broken_pipe());
+}
+
+fn write_newline(stdout: &mut StandardStream) {
+    writeln!(stdout).unwrap_or_else(|_| handle_broken_pipe());
 }
 
 //according to https://github.com/rust-lang/rust/issues/46016
@@ -120,9 +142,6 @@ fn handle_broken_pipe() {
 enum Status {
     TopRow,
     BottomRow,
-}
-fn is_buffer_full(buffer: &[ColorSpec], width: u32) -> bool {
-    buffer.len() == width as usize
 }
 
 #[cfg(test)]
