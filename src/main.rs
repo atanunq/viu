@@ -1,4 +1,5 @@
 extern crate clap;
+extern crate ctrlc;
 extern crate image;
 
 use clap::{value_t, App, Arg, ArgMatches};
@@ -85,22 +86,25 @@ fn run(matches: ArgMatches) {
             Ok(decoder) => match decoder.into_frames().collect_frames() {
                 Ok(frames) => {
                     let ten_millis = time::Duration::from_millis(10);
-                    let mut is_first_frame = true;
-                    //TODO: listen for user input to stop
+                    //handle Ctrl-C in order to clean up after ourselves
+                    //TODO: picture will continue printing between the print!() and exit leaving a
+                    //messy terminal
+                    ctrlc::set_handler(|| {
+                        print!("{}[0J", 27 as char);
+                        std::process::exit(0);
+                    })
+                    .expect("Could not setup Ctrl-C handler");
+
+                    //TODO: listen for user input to stop, not only Ctrl-C
                     loop {
                         for frame in &frames {
                             let buffer = frame.buffer();
+                            let (_, height) = handle_image(&matches, ImageRgba8(buffer.to_owned()));
+                            thread::sleep(ten_millis);
+
                             //keep replacing old pixels as the gif goes on so that scrollback
                             //buffer is not filled
-                            if !is_first_frame {
-                                //TODO: rows should be cleared first
-                                print!("{}[{}A", 27 as char, buffer.height());
-                            } else {
-                                is_first_frame = false;
-                            }
-                            handle_image(&matches, ImageRgba8(buffer.to_owned()));
-
-                            thread::sleep(ten_millis);
+                            print!("{}[{}A", 27 as char, height);
                         }
                     }
                 }
@@ -136,7 +140,7 @@ fn file_missing_error(filename: &str, e: &str) {
     std::process::exit(1);
 }
 
-fn handle_image(matches: &ArgMatches, img: DynamicImage) {
+fn handle_image(matches: &ArgMatches, img: DynamicImage) -> (u32, u32) {
     let verbose = matches.is_present("verbose");
 
     let mut print_img;
@@ -221,4 +225,6 @@ fn handle_image(matches: &ArgMatches, img: DynamicImage) {
             width, height, print_width, print_height
         );
     }
+
+    print_img.dimensions()
 }
