@@ -3,6 +3,8 @@ extern crate image;
 
 use clap::{value_t, App, Arg, ArgMatches};
 use image::GenericImageView;
+use image::{gif::Decoder, AnimationDecoder};
+use std::fs::File;
 
 mod printer;
 mod size;
@@ -62,6 +64,15 @@ fn run(matches: ArgMatches) {
     let files: Vec<_> = matches.values_of("FILE").unwrap().collect();
 
     for filename in files.iter() {
+        /* TODO: figure out why this fails on some .gif files
+        let file_in = File::open(filename).unwrap();
+        let decoder = Decoder::new(file_in).unwrap();
+        let frames = decoder.into_frames().collect_frames().unwrap();
+
+        for frame in frames {
+            printer::print(frame.buffer())
+        }*/
+
         let img = match image::open(filename) {
             Ok(i) => i,
             Err(e) => {
@@ -148,7 +159,7 @@ fn run(matches: ArgMatches) {
             print_img = print_img.fliph();
         }
 
-        printer::print(&print_img);
+        printer::print(&print_img.to_rgba());
 
         let (print_width, print_height) = print_img.dimensions();
         let (width, height) = img.dimensions();
