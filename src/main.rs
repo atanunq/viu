@@ -4,7 +4,9 @@ extern crate image;
 use clap::{value_t, App, Arg, ArgMatches};
 use image::{gif::Decoder, AnimationDecoder};
 use image::{DynamicImage, GenericImageView, ImageRgba8};
+use std::error::Error;
 use std::fs::File;
+use std::{thread, time};
 
 mod printer;
 mod size;
@@ -57,6 +59,7 @@ fn main() {
                 .help("Resize the image to a provided height"),
         )
         .get_matches();
+    //TODO: create a config struct
     run(matches);
 }
 
@@ -67,34 +70,70 @@ fn run(matches: ArgMatches) {
         if matches.is_present("name") {
             println!("{}:", filename);
         }
-        let file_in = File::open(filename).unwrap();
-        //TODO: fix matching
-        let decoder = Decoder::new(file_in).unwrap();
+        //TODO: only do that if we are sure the file is a legit image to avoid loading large files
+        let file_in = File::open(filename);
 
-        match decoder.into_frames().collect_frames() {
-            Ok(frames) => {
-                for frame in frames {
-                    let buffer = frame.buffer();
-                    handle_image(&matches, ImageRgba8(buffer.to_owned()));
-                }
+        let file_in = match file_in {
+            Err(e) => {
+                file_missing_error(filename, e.description());
+                panic!();
             }
-            Err(_) => {
-                /*if verbose {
-                    println!(
-                        "The GIF's frames could not be read, displaying only as an image instead."
-                    );
-                }*/
-                let img = match image::open(filename) {
-                    Ok(i) => i,
-                    Err(e) => {
-                        eprintln!("\"{}\": {}", filename, e);
-                        std::process::exit(1);
-                    }
-                };
-                handle_image(&matches, img);
-            }
+            Ok(f) => f,
         };
+
+        match Decoder::new(file_in) {
+            Ok(decoder) => match decoder.into_frames().collect_frames() {
+                Ok(frames) => {
+                    let ten_millis = time::Duration::from_millis(10);
+                    let mut is_first_frame = true;
+                    //TODO: listen for user input to stop
+                    loop {
+                        for frame in &frames {
+                            let buffer = frame.buffer();
+                            //keep replacing old pixels as the gif goes on so that scrollback
+                            //buffer is not filled
+                            if !is_first_frame {
+                                //TODO: rows should be cleared first
+                                print!("{}[{}A", 27 as char, buffer.height());
+                            } else {
+                                is_first_frame = false;
+                            }
+                            handle_image(&matches, ImageRgba8(buffer.to_owned()));
+
+                            thread::sleep(ten_millis);
+                        }
+                    }
+                }
+                Err(_) => {
+                    if matches.is_present("verbose") {
+                        println!(
+                                "The GIF's frames could not be read, displaying only as an image instead."
+                            );
+                    }
+                    print_simple_image(&matches, filename);
+                }
+            },
+            Err(_) => {
+                print_simple_image(&matches, filename);
+            }
+        }
     }
+}
+
+fn print_simple_image(matches: &ArgMatches, filename: &str) {
+    match image::open(filename) {
+        Ok(i) => {
+            handle_image(&matches, i);
+        }
+        Err(e) => {
+            file_missing_error(filename, e.description());
+        }
+    };
+}
+
+fn file_missing_error(filename: &str, e: &str) {
+    eprintln!("\"{}\": {}", filename, e);
+    std::process::exit(1);
 }
 
 fn handle_image(matches: &ArgMatches, img: DynamicImage) {
