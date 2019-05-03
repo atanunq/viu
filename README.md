@@ -22,6 +22,10 @@ viu img/smallimage.jpg
 #### Binary
 A precompiled binary can be downloaded from the [release page](https://www.github.com/atanunq/viu/releases/latest).
 
+#### Packages
+
+##### Arch Linux
+There is an [AUR package available for Arch Linux](https://aur.archlinux.org/packages/viu/).
 
 ### Usage
 
