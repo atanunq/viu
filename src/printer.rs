@@ -130,10 +130,16 @@ fn write_newline(stdout: &mut StandardStream) {
 }
 
 //according to https://github.com/rust-lang/rust/issues/46016
+#[cfg(not(windows))]
 fn handle_broken_pipe() {
     unsafe {
         libc::signal(libc::SIGPIPE, libc::SIG_DFL);
     };
+}
+
+#[cfg(windows)]
+fn handle_broken_pipe() {
+    panic!("broken pipe")
 }
 
 //enum used to keep track where the current line of pixels processed should be displayed - as

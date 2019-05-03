@@ -5,7 +5,6 @@ use clap::{value_t, App, Arg, ArgMatches};
 use image::GenericImageView;
 
 mod printer;
-mod size;
 
 //default width to be used when no options are passed and terminal size could not be computed
 const DEFAULT_PRINT_WIDTH: u32 = 100;
@@ -115,8 +114,9 @@ fn run(matches: ArgMatches) {
                     "Neither width, nor height is specified, therefore terminal size will be matched..."
                 );
             }
-            match size::get_size() {
-                Ok((w, h)) => {
+            match terminal_size::terminal_size() {
+                Some((w, h)) => {
+                    let (w, h) = (w.0 as u32, h.0 as u32);
                     //only change values if the image needs to be resized
                     //i.e is bigger than the terminal's size
                     if width > w {
@@ -126,9 +126,9 @@ fn run(matches: ArgMatches) {
                         print_height = 2 * h;
                     }
                 }
-                Err(e) => {
+                None => {
                     if verbose {
-                        eprintln!("{}", e);
+                        eprintln!("{}", "Could not get terminal size, using default width...");
                     }
                     //could not get terminal width => we fall back to a predefined value
                     //maybe use env variable?
