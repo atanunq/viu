@@ -7,7 +7,7 @@ use image::{gif::Decoder, AnimationDecoder};
 use image::{DynamicImage, GenericImageView, ImageRgba8};
 use std::error::Error;
 use std::fs::File;
-use std::{thread, time};
+use std::{thread, time::Duration};
 
 mod printer;
 mod size;
@@ -61,14 +61,63 @@ fn main() {
         )
         .get_matches();
     //TODO: create a config struct
-    run(matches);
+    let conf = Config::new(&matches);
+    run(conf);
 }
 
-fn run(matches: ArgMatches) {
-    let files: Vec<_> = matches.values_of("FILE").unwrap().collect();
+#[derive(Debug)]
+struct Config<'a> {
+    verbose: bool,
+    name: bool,
+    files: Vec<&'a str>,
+    mirror: bool,
+    width: Option<u32>,
+    is_width_present: bool,
+    height: Option<u32>,
+    is_height_present: bool,
+}
 
-    for filename in files.iter() {
-        if matches.is_present("name") {
+impl<'a> Config<'a> {
+    fn new(matches: &'a ArgMatches) -> Config<'a> {
+        let is_width_present = matches.is_present("width");
+        let is_height_present = matches.is_present("height");
+        let width = if is_width_present {
+            Some(value_t!(matches, "width", u32).unwrap_or_else(|e| e.exit()))
+        } else {
+            None
+        };
+        let height = if is_height_present {
+            Some(value_t!(matches, "height", u32).unwrap_or_else(|e| e.exit()))
+        } else {
+            None
+        };
+
+        Config {
+            verbose: matches.is_present("verbose"),
+            name: matches.is_present("name"),
+            mirror: matches.is_present("mirror"),
+            is_width_present: is_width_present,
+            is_height_present: is_height_present,
+            width: width,
+            height: height,
+            files: matches.values_of("FILE").unwrap().collect(),
+        }
+    }
+}
+
+fn run(conf: Config) {
+    //handle Ctrl-C in order to clean up after ourselves
+    //TODO: picture will continue printing between the print!() and exit leaving a messy terminal
+    ctrlc::set_handler(|| {
+        print!("{}[0J", 27 as char);
+        std::process::exit(0);
+    })
+    .expect("Could not setup Ctrl-C handler");
+
+    let files_len = conf.files.len();
+
+    for filename in conf.files.iter() {
+        if conf.name {
             println!("{}:", filename);
         }
         //TODO: only do that if we are sure the file is a legit image to avoid loading large files
@@ -85,49 +134,46 @@ fn run(matches: ArgMatches) {
         match Decoder::new(file_in) {
             Ok(decoder) => match decoder.into_frames().collect_frames() {
                 Ok(frames) => {
-                    let ten_millis = time::Duration::from_millis(10);
-                    //handle Ctrl-C in order to clean up after ourselves
-                    //TODO: picture will continue printing between the print!() and exit leaving a
-                    //messy terminal
-                    ctrlc::set_handler(|| {
-                        print!("{}[0J", 27 as char);
-                        std::process::exit(0);
-                    })
-                    .expect("Could not setup Ctrl-C handler");
-
+                    let ten_millis = Duration::from_millis(10);
                     //TODO: listen for user input to stop, not only Ctrl-C
                     loop {
                         for frame in &frames {
                             let buffer = frame.buffer();
-                            let (_, height) = handle_image(&matches, ImageRgba8(buffer.to_owned()));
+                            let (_, height) = handle_image(&conf, ImageRgba8(buffer.to_owned()));
                             thread::sleep(ten_millis);
 
                             //keep replacing old pixels as the gif goes on so that scrollback
                             //buffer is not filled
                             print!("{}[{}A", 27 as char, height);
                         }
+                        //only stop if there are other files to be previewed
+                        //so that if only the gif is viewed, it will loop infinitely
+                        if files_len != 1 {
+                            break;
+                        }
                     }
+                    print!("{}[0J", 27 as char);
                 }
                 Err(_) => {
-                    if matches.is_present("verbose") {
+                    if conf.verbose {
                         println!(
                                 "The GIF's frames could not be read, displaying only as an image instead."
                             );
                     }
-                    print_simple_image(&matches, filename);
+                    print_simple_image(&conf, filename);
                 }
             },
             Err(_) => {
-                print_simple_image(&matches, filename);
+                print_simple_image(&conf, filename);
             }
         }
     }
 }
 
-fn print_simple_image(matches: &ArgMatches, filename: &str) {
+fn print_simple_image(conf: &Config, filename: &str) {
     match image::open(filename) {
         Ok(i) => {
-            handle_image(&matches, i);
+            handle_image(&conf, i);
         }
         Err(e) => {
             file_missing_error(filename, e.description());
@@ -140,27 +186,20 @@ fn file_missing_error(filename: &str, e: &str) {
     std::process::exit(1);
 }
 
-fn handle_image(matches: &ArgMatches, img: DynamicImage) -> (u32, u32) {
-    let verbose = matches.is_present("verbose");
-
+fn handle_image(conf: &Config, img: DynamicImage) -> (u32, u32) {
     let mut print_img;
     let (width, height) = img.dimensions();
     let (mut print_width, mut print_height) = img.dimensions();
 
-    let specified_width = matches.is_present("width");
-    let specified_height = matches.is_present("height");
-
-    if specified_width {
-        let new_width = value_t!(matches, "width", u32).unwrap_or_else(|e| e.exit());
-        print_width = new_width;
+    if conf.is_width_present {
+        print_width = conf.width.unwrap();
     }
-    if specified_height {
-        let new_height = value_t!(matches, "height", u32).unwrap_or_else(|e| e.exit());
+    if conf.is_height_present {
         //since 2 pixels are printed per terminal cell, an image with twice the height can be fit
-        print_height = 2 * new_height;
+        print_height = 2 * conf.height.unwrap();
     }
-    if specified_width && specified_height {
-        if verbose {
+    if conf.is_width_present && conf.is_height_present {
+        if conf.verbose {
             println!(
                     "Both width and height are specified, resizing to {}x{} without preserving aspect ratio...",
                     print_width,
@@ -168,8 +207,8 @@ fn handle_image(matches: &ArgMatches, img: DynamicImage) -> (u32, u32) {
                 );
         }
         print_img = img.thumbnail_exact(print_width, print_height);
-    } else if specified_width || specified_height {
-        if verbose {
+    } else if conf.is_width_present || conf.is_height_present {
+        if conf.verbose {
             println!(
                     "Either width or height is specified, resizing to {}x{} and preserving aspect ratio...",
                     print_width, print_height
@@ -177,7 +216,7 @@ fn handle_image(matches: &ArgMatches, img: DynamicImage) -> (u32, u32) {
         }
         print_img = img.thumbnail(print_width, print_height);
     } else {
-        if verbose {
+        if conf.verbose {
             println!(
                     "Neither width, nor height is specified, therefore terminal size will be matched..."
                 );
@@ -194,7 +233,7 @@ fn handle_image(matches: &ArgMatches, img: DynamicImage) -> (u32, u32) {
                 }
             }
             Err(e) => {
-                if verbose {
+                if conf.verbose {
                     eprintln!("{}", e);
                 }
                 //could not get terminal width => we fall back to a predefined value
@@ -202,7 +241,7 @@ fn handle_image(matches: &ArgMatches, img: DynamicImage) -> (u32, u32) {
                 print_width = DEFAULT_PRINT_WIDTH;
             }
         };
-        if verbose {
+        if conf.verbose {
             println!(
                 "Usable space is {}x{}, resizing and preserving aspect ratio...",
                 print_width, print_height
@@ -211,7 +250,7 @@ fn handle_image(matches: &ArgMatches, img: DynamicImage) -> (u32, u32) {
         print_img = img.thumbnail(print_width, print_height);
     }
 
-    if matches.is_present("mirror") {
+    if conf.mirror {
         print_img = print_img.fliph();
     }
 
@@ -219,7 +258,7 @@ fn handle_image(matches: &ArgMatches, img: DynamicImage) -> (u32, u32) {
 
     let (print_width, print_height) = print_img.dimensions();
     let (width, height) = img.dimensions();
-    if verbose {
+    if conf.verbose {
         println!(
             "From {}x{} the image is now {}x{}",
             width, height, print_width, print_height
