@@ -1,11 +1,11 @@
-use image::{ImageBuffer, Rgba};
+use image::{DynamicImage, GenericImageView, Pixel, Rgba};
 use std::io::Write;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 const UPPER_HALF_BLOCK: &str = "\u{2580}";
 const LOWER_HALF_BLOCK: &str = "\u{2584}";
 
-pub fn print(img: &ImageBuffer<Rgba<u8>, Vec<u8>>) {
+pub fn print(img: &DynamicImage) {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
 
     let (width, _) = img.dimensions();
@@ -18,13 +18,13 @@ pub fn print(img: &ImageBuffer<Rgba<u8>, Vec<u8>>) {
     //iterate pixels and fill a buffer that contains 2 rows of pixels
     //2 rows translate to 1 row in the terminal by using half block, foreground and background
     //colors
-    for &pixel in img.pixels() {
+    for pixel in img.pixels() {
         //if the alpha of the pixel is 0, print a predefined pixel based on the position in order
         //to mimic the chess board background
         let color = if is_pixel_transparent(pixel) {
             get_transparency_color(curr_row_px, curr_col_px)
         } else {
-            get_color(pixel)
+            get_color(get_pixel_data(pixel))
         };
 
         if mode == Status::TopRow {
@@ -90,18 +90,20 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
     buff.clear();
 }
 
-fn is_pixel_transparent(pixel: Rgba<u8>) -> bool {
-    pixel.data[3] == 0
+fn is_pixel_transparent(pixel: (u32, u32, Rgba<u8>)) -> bool {
+    pixel.2.data[3] == 0
 }
 
 fn get_transparency_color(row: u32, col: u32) -> Color {
     if row % 2 == col % 2 {
-        //light grey
         Color::Rgb(102, 102, 102)
     } else {
-        //dark grey
         Color::Rgb(153, 153, 153)
     }
+}
+
+fn get_pixel_data<T: Pixel>(pixel: (u32, u32, T)) -> T {
+    pixel.2
 }
 
 fn get_color(p: Rgba<u8>) -> Color {
