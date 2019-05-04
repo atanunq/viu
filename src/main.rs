@@ -120,7 +120,7 @@ fn run(conf: Config) {
     })
     .expect("Could not setup Ctrl-C handler");
 
-    let files_len = conf.files.len();
+    let is_single_file = conf.files.len() == 1;
 
     for filename in conf.files.iter() {
         if conf.name {
@@ -161,13 +161,13 @@ fn run(conf: Config) {
                             frame_counter += 1;
                             //keep replacing old pixels as the gif goes on so that scrollback
                             //buffer is not filled
-                            if frame_counter != frames_len {
+                            if frame_counter != frames_len || is_single_file {
                                 print!("{}[{}A", 27 as char, height);
                             }
                         }
                         //only stop if there are other files to be previewed
                         //so that if only the gif is viewed, it will loop infinitely
-                        if files_len != 1 {
+                        if !is_single_file {
                             break;
                         }
                     }
