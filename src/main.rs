@@ -7,6 +7,7 @@ use image::{gif::Decoder, AnimationDecoder};
 use image::{DynamicImage, GenericImageView, ImageRgba8};
 use std::error::Error;
 use std::fs::File;
+use std::sync::mpsc;
 use std::{thread, time::Duration};
 
 mod printer;
@@ -60,12 +61,10 @@ fn main() {
                 .help("Resize the image to a provided height"),
         )
         .get_matches();
-    //TODO: create a config struct
     let conf = Config::new(&matches);
     run(conf);
 }
 
-#[derive(Debug)]
 struct Config<'a> {
     verbose: bool,
     name: bool,
@@ -95,20 +94,27 @@ impl<'a> Config<'a> {
         Config {
             verbose: matches.is_present("verbose"),
             name: matches.is_present("name"),
-            mirror: matches.is_present("mirror"),
-            is_width_present: is_width_present,
-            is_height_present: is_height_present,
-            width: width,
-            height: height,
             files: matches.values_of("FILE").unwrap().collect(),
+            mirror: matches.is_present("mirror"),
+            width,
+            is_width_present,
+            height,
+            is_height_present,
         }
     }
 }
 
 fn run(conf: Config) {
+    //create two channels so that ctrlc-handler and the main thread can pass messages in order to
+    //communicate when printing must be stopped
+    let (tx_ctrlc, rx_print) = mpsc::channel();
+    let (tx_print, rx_ctrlc) = mpsc::channel();
     //handle Ctrl-C in order to clean up after ourselves
-    //TODO: picture will continue printing between the print!() and exit leaving a messy terminal
-    ctrlc::set_handler(|| {
+    ctrlc::set_handler(move || {
+        //if ctrlc is received tell the infinite gif loop to stop drawing
+        tx_ctrlc.send(true).unwrap();
+        //a message will be received when that has happened so we can clear leftover symbols
+        let _ = rx_ctrlc.recv().unwrap();
         print!("{}[0J", 27 as char);
         std::process::exit(0);
     })
@@ -134,17 +140,30 @@ fn run(conf: Config) {
         match Decoder::new(file_in) {
             Ok(decoder) => match decoder.into_frames().collect_frames() {
                 Ok(frames) => {
-                    let ten_millis = Duration::from_millis(10);
+                    let frames_len = frames.len();
+                    let mut frame_counter;
+                    let forty_millis = Duration::from_millis(40);
                     //TODO: listen for user input to stop, not only Ctrl-C
-                    loop {
+                    'infinite: loop {
+                        frame_counter = 0;
                         for frame in &frames {
                             let buffer = frame.buffer();
                             let (_, height) = handle_image(&conf, ImageRgba8(buffer.to_owned()));
-                            thread::sleep(ten_millis);
+                            thread::sleep(forty_millis);
 
+                            //if ctrlc is received then respond so the handler can clear the
+                            //terminal from leftover colors
+                            if rx_print.try_recv().is_ok() {
+                                tx_print.send(true).unwrap();
+                                break 'infinite;
+                            };
+
+                            frame_counter += 1;
                             //keep replacing old pixels as the gif goes on so that scrollback
                             //buffer is not filled
-                            print!("{}[{}A", 27 as char, height);
+                            if frame_counter != frames_len {
+                                print!("{}[{}A", 27 as char, height);
+                            }
                         }
                         //only stop if there are other files to be previewed
                         //so that if only the gif is viewed, it will loop infinitely
@@ -152,7 +171,6 @@ fn run(conf: Config) {
                             break;
                         }
                     }
-                    print!("{}[0J", 27 as char);
                 }
                 Err(_) => {
                     if conf.verbose {
@@ -173,7 +191,7 @@ fn run(conf: Config) {
 fn print_simple_image(conf: &Config, filename: &str) {
     match image::open(filename) {
         Ok(i) => {
-            handle_image(&conf, i);
+            handle_image(conf, i);
         }
         Err(e) => {
             file_missing_error(filename, e.description());
