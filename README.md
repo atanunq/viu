@@ -7,7 +7,7 @@ It uses lower half blocks (▄ or \u2584) to fit 2 pixels into a single cell by 
 ### Installation
 
 #### From source
-Installation from source required a local [Rust environment](https://www.rust-lang.org/tools/install).
+Installation from source requires a local [Rust environment](https://www.rust-lang.org/tools/install).
 
 ```bash
 git clone https://github.com/atanunq/viu.git
@@ -18,6 +18,10 @@ cargo install --path .
 
 # Use
 viu img/smallimage.jpg
+```
+Or without cloning:
+```bash
+cargo install viu
 ```
 #### Binary
 A precompiled binary can be downloaded from the [release page](https://www.github.com/atanunq/viu/releases/latest).
@@ -31,9 +35,12 @@ There is an [AUR package available for Arch Linux](https://aur.archlinux.org/pac
 
 ![Demo](img/demo.gif)
 
+
+![Demo](img/gifdemo.gif)
+
 Examples:
 
-- `viu img/smallimage.jpg` 
+- `viu img/giphy.gif` (stop with Ctrl-C) 
 - `viu img/*`
 
 
