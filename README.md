@@ -32,19 +32,22 @@ A precompiled binary can be downloaded from the [release page](https://www.githu
 There is an [AUR package available for Arch Linux](https://aur.archlinux.org/packages/viu/).
 
 ### Usage
-
 ![Demo](img/demo.gif)
 
 
 ![Demo](img/gifdemo.gif)
+Ctrl-C was pressed to stop the GIF.
+
 
 Examples:
 
-- `viu img/giphy.gif` (stop with Ctrl-C) 
+- `viu img/giphy.gif`
 - `viu img/*`
 
 
 The shell will expand the wildcard above and *viu* will display all the images in the folder one after the other. For a more informative output when dealing with folders the flag **-n** could be used.
+
+When `viu` receives only one file and it is GIF, it will be displayed over and over until Ctrl-C is pressed. However, when couple of files are up for display (second example) the GIF will be displayed only once.
 
 ##### Aspect Ratio
 If no flags are supplied to *viu* it will try to get the size of the terminal where it was invoked. If it succeeds it will fit the image and preserve the aspect ratio. The aspect ratio will be changed only if both options **-w** and **-h** are used together.
