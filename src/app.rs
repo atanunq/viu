@@ -1,6 +1,6 @@
 use clap::{value_t, ArgMatches};
-use image::{gif::Decoder, AnimationDecoder};
-use image::{DynamicImage, GenericImageView, ImageRgba8};
+use gif::SetParameter;
+use image::{DynamicImage, GenericImageView, ImageBuffer, ImageRgba8};
 use std::fs::File;
 use std::sync::mpsc;
 use std::{thread, time::Duration};
@@ -9,6 +9,7 @@ use crate::printer;
 use crate::size;
 
 //default width to be used when no options are passed and terminal size could not be computed
+//maybe use env variable?
 const DEFAULT_PRINT_WIDTH: u32 = 100;
 
 pub struct Config<'a> {
@@ -84,53 +85,49 @@ pub fn run(conf: Config) {
             Ok(f) => f,
         };
 
-        match Decoder::new(file_in) {
-            Ok(decoder) => match decoder.into_frames().collect_frames() {
-                Ok(frames) => {
-                    let frames_len = frames.len();
-                    let mut frame_counter;
-                    let forty_millis = Duration::from_millis(40);
-                    //TODO: listen for user input to stop, not only Ctrl-C
-                    'infinite: loop {
-                        frame_counter = 0;
-                        for frame in &frames {
-                            let buffer = frame.buffer();
-                            let (_, height) =
-                                resize_and_print(&conf, ImageRgba8(buffer.to_owned()));
-                            thread::sleep(forty_millis);
-
-                            //if ctrlc is received then respond so the handler can clear the
-                            //terminal from leftover colors
-                            if rx_print.try_recv().is_ok() {
-                                tx_print.send(true).unwrap();
-                                break 'infinite;
-                            };
-
-                            frame_counter += 1;
-                            //keep replacing old pixels as the gif goes on so that scrollback
-                            //buffer is not filled (do not do that if its a sequence of files and
-                            //one of them is a gif)
-                            if frame_counter != frames_len || is_single_file {
-                                print!("{}[{}A", 27 as char, height);
-                            }
-                        }
-                        //only stop if there are other files to be previewed
-                        //so that if only the gif is viewed, it will loop infinitely
-                        if !is_single_file {
+        let mut decoder = gif::Decoder::new(file_in);
+        decoder.set(gif::ColorOutput::RGBA);
+        match decoder.read_info() {
+            //if it is a legit gif read the frames and start printing them
+            Ok(mut decoder) => {
+                let mut frames_vec = Vec::new();
+                while let Some(frame) = decoder.read_next_frame().unwrap() {
+                    frames_vec.push(frame.to_owned());
+                }
+                let ten_millis = Duration::from_millis(30);
+                let frames_len = frames_vec.len();
+                'infinite: loop {
+                    for (counter, frame) in frames_vec.iter().enumerate() {
+                        //TODO: listen for user input to stop, not only Ctrl-C
+                        let buffer = ImageBuffer::from_raw(
+                            frame.width.into(),
+                            frame.height.into(),
+                            std::convert::From::from(frame.buffer.to_owned()),
+                        )
+                        .unwrap();
+                        let (_, height) = resize_and_print(&conf, ImageRgba8(buffer));
+                        thread::sleep(ten_millis);
+                        //if ctrlc is received then respond so the handler can clear the
+                        //terminal from leftover colors
+                        if rx_print.try_recv().is_ok() {
+                            tx_print.send(true).unwrap();
                             break;
+                        };
+
+                        //keep replacing old pixels as the gif goes on so that scrollback
+                        //buffer is not filled (do not do that if it is the last frame of the gif
+                        //and a couple of files are being processed
+                        if counter != frames_len - 1 || is_single_file {
+                            print!("{}[{}A", 27 as char, height);
                         }
                     }
-                }
-                Err(e) => {
-                    if conf.verbose {
-                        println!(
-                                "The GIF's frames could not be read, displaying only as an image instead."
-                            );
+                    //only stop if there are other files to be previewed
+                    //so that if only the gif is viewed, it will loop infinitely
+                    if !is_single_file {
+                        break 'infinite;
                     }
-                    eprintln!("{}", e);
-                    print_normal_image(&conf, filename);
                 }
-            },
+            }
             Err(_) => {
                 //the provided image is not a gif so nothing special has to be done
                 print_normal_image(&conf, filename);
@@ -206,7 +203,6 @@ fn resize_and_print(conf: &Config, img: DynamicImage) -> (u32, u32) {
                     eprintln!("{}", e);
                 }
                 //could not get terminal width => we fall back to a predefined value
-                //maybe use env variable?
                 print_width = DEFAULT_PRINT_WIDTH;
             }
         };
