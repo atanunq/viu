@@ -94,7 +94,7 @@ pub fn run(conf: Config) {
                 while let Some(frame) = decoder.read_next_frame().unwrap() {
                     frames_vec.push(frame.to_owned());
                 }
-                let ten_millis = Duration::from_millis(30);
+                let thirty_millis = Duration::from_millis(30);
                 let frames_len = frames_vec.len();
                 'infinite: loop {
                     for (counter, frame) in frames_vec.iter().enumerate() {
@@ -106,7 +106,7 @@ pub fn run(conf: Config) {
                         )
                         .unwrap();
                         let (_, height) = resize_and_print(&conf, ImageRgba8(buffer));
-                        thread::sleep(ten_millis);
+                        thread::sleep(thirty_millis);
                         //if ctrlc is received then respond so the handler can clear the
                         //terminal from leftover colors
                         if rx_print.try_recv().is_ok() {
@@ -118,7 +118,9 @@ pub fn run(conf: Config) {
                         //buffer is not filled (do not do that if it is the last frame of the gif
                         //and a couple of files are being processed
                         if counter != frames_len - 1 || is_single_file {
-                            print!("{}[{}A", 27 as char, height);
+                            //since picture height is in pixel, we divide by 2 to get the height in
+                            //terminal cells
+                            print!("{}[{}A", 27 as char, height / 2 + height % 2);
                         }
                     }
                     //only stop if there are other files to be previewed
