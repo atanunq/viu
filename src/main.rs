@@ -16,9 +16,7 @@ fn main() {
         .arg(
             Arg::with_name("FILE")
                 .help("The image to be displayed")
-                .required(true)
-                .multiple(true)
-                .empty_values(false),
+                .multiple(true),
         )
         .arg(
             Arg::with_name("verbose")
