@@ -2,6 +2,7 @@ use clap::{value_t, ArgMatches};
 use gif::SetParameter;
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageRgba8};
 use std::fs::File;
+use std::io::{self, Read};
 use std::sync::mpsc;
 use std::{thread, time::Duration};
 
@@ -38,10 +39,15 @@ impl<'a> Config<'a> {
             None
         };
 
+        let files = match matches.values_of("FILE") {
+            None => Vec::new(),
+            Some(values) => values.collect(),
+        };
+
         Config {
             verbose: matches.is_present("verbose"),
             name: matches.is_present("name"),
-            files: matches.values_of("FILE").unwrap().collect(),
+            files,
             mirror: matches.is_present("mirror"),
             width,
             is_width_present,
@@ -67,8 +73,21 @@ pub fn run(conf: Config) {
     })
     .expect("Could not setup Ctrl-C handler");
 
+    let no_files_passed = conf.files.is_empty();
     let is_single_file = conf.files.len() == 1;
 
+    //TODO: handle multiple files
+    if no_files_passed {
+        let stdin = io::stdin();
+        //FIXME: if nothing can be read from the pipe release the lock
+        let mut handle = stdin.lock();
+
+        let mut buf: Vec<u8> = Vec::new();
+        handle.read_to_end(&mut buf).unwrap();
+
+        let img = image::load_from_memory(&buf).unwrap();
+        resize_and_print(&conf, img);
+    }
     //loop throught all files passed
     for filename in conf.files.iter() {
         if conf.name {
