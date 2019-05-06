@@ -1,8 +1,14 @@
 # viu
 
 ### Description
-A small command-line application to view images from the terminal written in Rust. 
+A small command-line application to view images from the terminal written in Rust.
 It uses lower half blocks (▄ or \u2584) to fit 2 pixels into a single cell by adjusting foreground and background colours accordingly.
+
+
+Features (see [Usage](#usage)):
+- Animated GIF support
+- Accept media through stdin
+- Custom dimensions
 
 ### Installation
 
@@ -17,7 +23,7 @@ cd viu/
 cargo install --path .
 
 # Use
-viu img/smallimage.jpg
+viu img/giphy.gif
 ```
 Or without cloning:
 ```bash
@@ -36,7 +42,12 @@ There is an [AUR package available for Arch Linux](https://aur.archlinux.org/pac
 
 
 ![Demo](img/gifdemo.gif)
-Ctrl-C was pressed to stop the GIF.
+
+
+![Demo](img/curldemo.gif)
+
+
+Ctrl-C was pressed to stop the GIFs.
 
 
 Examples:
@@ -71,6 +82,6 @@ ARGS:
 ```
 
 #### TODOs:
+- [x] Reimplement STDIN image support based on [#7](https://github.com/atanunq/viu/pull/7)
 - [ ] Use [crossterm](https://github.com/TimonPost/crossterm) to add Windows support and remove magic terminal escape sequences
-- [ ] Reimplement STDIN image support based on [#7](https://github.com/atanunq/viu/pull/7)
 - [ ] Tests
