@@ -1,6 +1,6 @@
 [package]
 name = "viu"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Atanas Yankov <atanas.yankov98@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -14,3 +14,5 @@ libc = "0.2"
 image = "0.21.1"
 clap = "2.32.0"
 termcolor = "1"
+ctrlc = { version = "3.0", features = ["termination"] }
+gif = "0.10.1"
