@@ -69,3 +69,8 @@ OPTIONS:
 ARGS:
     <FILE>...    The image to be displayed
 ```
+
+#### TODOs:
+- [ ] Use [crossterm](https://github.com/TimonPost/crossterm) to add Windows support and remove magic terminal escape sequences
+- [ ] Reimplement STDIN image support based on [#7](https://github.com/atanunq/viu/pull/7)
+- [ ] Tests
