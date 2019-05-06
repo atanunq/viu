@@ -66,13 +66,10 @@ pub fn run(conf: Config) {
     let (tx_print, rx_ctrlc) = mpsc::channel();
     //handle Ctrl-C in order to clean up after ourselves
     ctrlc::set_handler(move || {
-        //dont wait for confirmation if stdin is used
-        if !no_files_passed {
-            //if ctrlc is received tell the infinite gif loop to stop drawing
-            tx_ctrlc.send(true).unwrap();
-            //a message will be received when that has happened so we can clear leftover symbols
-            let _ = rx_ctrlc.recv().unwrap();
-        }
+        //if ctrlc is received tell the infinite gif loop to stop drawing
+        tx_ctrlc.send(true).unwrap();
+        //a message will be received when that has happened so we can clear leftover symbols
+        let _ = rx_ctrlc.recv().unwrap();
         print!("{}[0J", 27 as char);
         std::process::exit(0);
     })
@@ -87,8 +84,7 @@ pub fn run(conf: Config) {
         let mut buf: Vec<u8> = Vec::new();
         let _ = handle.read_to_end(&mut buf).unwrap();
 
-        //TODO: handle GIFs
-        if try_print_gif(&conf, handle, &tx_print, &rx_print).is_err() {
+        if try_print_gif(&conf, BufReader::new(&*buf), &tx_print, &rx_print).is_err() {
             if let Ok(img) = image::load_from_memory(&buf) {
                 resize_and_print(&conf, img);
             } else {
@@ -121,12 +117,14 @@ pub fn run(conf: Config) {
 }
 fn try_print_gif<R: Read>(
     conf: &Config,
-    file_in: R,
+    input_stream: R,
     tx: &mpsc::Sender<bool>,
     rx: &mpsc::Receiver<bool>,
 ) -> Result<(), gif::DecodingError> {
-    let is_single_file = conf.files.len() == 1;
-    let mut decoder = gif::Decoder::new(file_in);
+    //only stop if there are other files to be previewed
+    //so that if only the gif is viewed, it will loop infinitely
+    let should_loop = conf.files.len() <= 1;
+    let mut decoder = gif::Decoder::new(input_stream);
     decoder.set(gif::ColorOutput::RGBA);
     match decoder.read_info() {
         //if it is a legit gif read the frames and start printing them
@@ -158,24 +156,19 @@ fn try_print_gif<R: Read>(
                     //keep replacing old pixels as the gif goes on so that scrollback
                     //buffer is not filled (do not do that if it is the last frame of the gif
                     //and a couple of files are being processed
-                    if counter != frames_len - 1 || is_single_file {
+                    if counter != frames_len - 1 || should_loop {
                         //since picture height is in pixel, we divide by 2 to get the height in
                         //terminal cells
                         print!("{}[{}A", 27 as char, height / 2 + height % 2);
                     }
                 }
-                //only stop if there are other files to be previewed
-                //so that if only the gif is viewed, it will loop infinitely
-                if !is_single_file {
+                if !should_loop {
                     break 'infinite;
                 }
             }
             Ok(())
         }
-        Err(e) => {
-            println!("{}", e);
-            Err(e)
-        }
+        Err(e) => Err(e),
     }
 }
 

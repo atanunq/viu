@@ -94,6 +94,9 @@ fn is_pixel_transparent(pixel: (u32, u32, Rgba<u8>)) -> bool {
     pixel.2.data[3] == 0
 }
 
+//TODO: some gifs do not specify every pixel in every frame (they reuse old pixels)
+//experimenting is required to see how gifs like
+//https://media.giphy.com/media/13gvXfEVlxQjDO/giphy.gif behave
 fn get_transparency_color(row: u32, col: u32) -> Color {
     if row % 2 == col % 2 {
         Color::Rgb(102, 102, 102)
