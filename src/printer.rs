@@ -11,7 +11,6 @@ pub fn print(img: &DynamicImage) {
 
     let (width, _) = img.dimensions();
 
-    let mut curr_row_px = 0;
     let mut curr_col_px = 0;
     let mut buffer: Vec<ColorSpec> = Vec::with_capacity(width as usize);
     let mut mode: Status = Status::TopRow;
@@ -41,13 +40,11 @@ pub fn print(img: &DynamicImage) {
         if is_buffer_full(&buffer, width) {
             if mode == Status::TopRow {
                 mode = Status::BottomRow;
-                curr_row_px += 1;
                 curr_col_px = 0;
             }
             //only if the second row is completed flush the buffer and start again
             else if curr_col_px == width {
                 curr_col_px = 0;
-                curr_row_px += 1;
                 print_buffer(&mut buffer, false);
                 mode = Status::TopRow;
             }
