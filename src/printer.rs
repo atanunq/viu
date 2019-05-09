@@ -4,6 +4,7 @@ use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 const UPPER_HALF_BLOCK: &str = "\u{2580}";
 const LOWER_HALF_BLOCK: &str = "\u{2584}";
+const EMPTY_BLOCK: &str = " ";
 
 pub fn print(img: &DynamicImage) {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
@@ -22,7 +23,7 @@ pub fn print(img: &DynamicImage) {
         //if the alpha of the pixel is 0, print a predefined pixel based on the position in order
         //to mimic the chess board background
         let color = if is_pixel_transparent(pixel) {
-            get_transparency_color(curr_row_px, curr_col_px)
+            Color::Magenta // placeholder for transparency. won't affect actually magenta pixels
         } else {
             get_color(get_pixel_data(pixel))
         };
@@ -74,12 +75,41 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
         if is_flush {
             new_color = ColorSpec::new();
             let bg = c.bg().unwrap();
-            new_color.set_fg(Some(*bg));
+            if bg != &Color::Magenta {
+                new_color.set_fg(Some(*bg));
+                out_char = UPPER_HALF_BLOCK;
+            } else {
+                out_char = EMPTY_BLOCK;
+            }
             out_color = &new_color;
-            out_char = UPPER_HALF_BLOCK;
         } else {
             out_color = c;
-            out_char = LOWER_HALF_BLOCK;
+            let top = c.bg().unwrap();
+            let bottom = c.fg().unwrap();
+            if top == &Color::Magenta {
+                if bottom == &Color::Magenta {
+                    // completely transparent
+                    new_color = ColorSpec::new();
+                    out_color = &new_color;
+                    out_char = EMPTY_BLOCK;
+                } else {
+                    // only top transparent
+                    new_color = ColorSpec::new();
+                    new_color.set_fg(Some(*bottom));
+                    out_color = &new_color;
+                    out_char = LOWER_HALF_BLOCK;
+                }
+            } else {
+                if bottom == &Color::Magenta {
+                    // only bottom transparent
+                    new_color = ColorSpec::new();
+                    new_color.set_fg(Some(*top));
+                    out_color = &new_color;
+                    out_char = UPPER_HALF_BLOCK;
+                } else {// normal
+                    out_char = LOWER_HALF_BLOCK;
+                }
+            }
         }
         change_stdout_color(&mut stdout, out_color);
         write!(stdout, "{}", out_char).unwrap_or_else(|_| handle_broken_pipe());
@@ -92,17 +122,6 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
 
 fn is_pixel_transparent(pixel: (u32, u32, Rgba<u8>)) -> bool {
     pixel.2.data[3] == 0
-}
-
-//TODO: some gifs do not specify every pixel in every frame (they reuse old pixels)
-//experimenting is required to see how gifs like
-//https://media.giphy.com/media/13gvXfEVlxQjDO/giphy.gif behave
-fn get_transparency_color(row: u32, col: u32) -> Color {
-    if row % 2 == col % 2 {
-        Color::Rgb(102, 102, 102)
-    } else {
-        Color::Rgb(153, 153, 153)
-    }
 }
 
 fn get_pixel_data<T: Pixel>(pixel: (u32, u32, T)) -> T {
