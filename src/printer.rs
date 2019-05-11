@@ -6,12 +6,13 @@ const UPPER_HALF_BLOCK: &str = "\u{2580}";
 const LOWER_HALF_BLOCK: &str = "\u{2584}";
 const EMPTY_BLOCK: &str = " ";
 
-pub fn print(img: &DynamicImage) {
+pub fn print(img: &DynamicImage, transparent: bool) {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
 
     let (width, _) = img.dimensions();
 
     let mut curr_col_px = 0;
+    let mut curr_row_px = 0;
     let mut buffer: Vec<ColorSpec> = Vec::with_capacity(width as usize);
     let mut mode: Status = Status::TopRow;
 
@@ -22,7 +23,11 @@ pub fn print(img: &DynamicImage) {
         //if the alpha of the pixel is 0, print a predefined pixel based on the position in order
         //to mimic the chess board background
         let color = if is_pixel_transparent(pixel) {
-            Color::Magenta // placeholder for transparency. won't affect actually magenta pixels
+            if transparent {
+                Color::Magenta // placeholder for transparency. won't affect actually magenta pixels
+            } else {
+                get_transparency_color(curr_row_px, curr_col_px)
+            }
         } else {
             get_color(get_pixel_data(pixel))
         };
@@ -41,10 +46,12 @@ pub fn print(img: &DynamicImage) {
             if mode == Status::TopRow {
                 mode = Status::BottomRow;
                 curr_col_px = 0;
+                curr_row_px += 1;
             }
             //only if the second row is completed flush the buffer and start again
             else if curr_col_px == width {
                 curr_col_px = 0;
+                curr_row_px += 1;
                 print_buffer(&mut buffer, false);
                 mode = Status::TopRow;
             }
@@ -119,6 +126,17 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
 
 fn is_pixel_transparent(pixel: (u32, u32, Rgba<u8>)) -> bool {
     pixel.2.data[3] == 0
+}
+
+//TODO: some gifs do not specify every pixel in every frame (they reuse old pixels)
+//experimenting is required to see how gifs like
+//https://media.giphy.com/media/13gvXfEVlxQjDO/giphy.gif behave
+fn get_transparency_color(row: u32, col: u32) -> Color {
+    if row % 2 == col % 2 {
+        Color::Rgb(102, 102, 102)
+    } else {
+        Color::Rgb(153, 153, 153)
+    }
 }
 
 fn get_pixel_data<T: Pixel>(pixel: (u32, u32, T)) -> T {

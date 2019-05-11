@@ -37,6 +37,12 @@ fn main() {
                 .help("Display a mirror of the original image"),
         )
         .arg(
+            Arg::with_name("transparent")
+                .short("t")
+                .long("transparent")
+                .help("Display transparent image with transparent background"),
+        )
+        .arg(
             Arg::with_name("width")
                 .short("w")
                 .long("width")

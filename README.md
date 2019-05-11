@@ -69,9 +69,10 @@ USAGE:
     viu [FLAGS] [OPTIONS] <FILE>...
 
 FLAGS:
-    -m, --mirror     Display a mirror of the original image
-    -n, --name       Output the name of the file before displaying
-    -v, --verbose    Output what is going on
+    -m, --mirror        Display a mirror of the original image
+    -t, --transparent   Display transparent pixels in the color of the terminal
+    -n, --name          Output the name of the file before displaying
+    -v, --verbose       Output what is going on
 
 OPTIONS:
     -h, --height <height>    Resize the image to a provided height

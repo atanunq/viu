@@ -18,6 +18,7 @@ pub struct Config<'a> {
     name: bool,
     files: Vec<&'a str>,
     mirror: bool,
+    transparent: bool,
     width: Option<u32>,
     is_width_present: bool,
     height: Option<u32>,
@@ -49,6 +50,7 @@ impl<'a> Config<'a> {
             name: matches.is_present("name"),
             files,
             mirror: matches.is_present("mirror"),
+            transparent: matches.is_present("transparent"),
             width,
             is_width_present,
             height,
@@ -255,7 +257,7 @@ fn resize_and_print(conf: &Config, img: DynamicImage) -> (u32, u32) {
         print_img = print_img.fliph();
     }
 
-    printer::print(&print_img);
+    printer::print(&print_img, conf.transparent);
 
     let (print_width, print_height) = print_img.dimensions();
     let (width, height) = img.dimensions();
