@@ -83,14 +83,13 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
                 Some(bg) => {
                     new_color.set_fg(Some(*bg));
                     out_char = UPPER_HALF_BLOCK;
-                },
+                }
                 None => {
                     out_char = EMPTY_BLOCK;
                 }
             }
             out_color = &new_color;
         } else {
-            out_color = c;
             match c.bg() {
                 None => match c.fg() {
                     None => {
@@ -98,7 +97,7 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
                         new_color = ColorSpec::new();
                         out_color = &new_color;
                         out_char = EMPTY_BLOCK;
-                    },
+                    }
                     Some(bottom) => {
                         // only top transparent
                         new_color = ColorSpec::new();
@@ -114,11 +113,13 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
                         new_color.set_fg(Some(*top));
                         out_color = &new_color;
                         out_char = UPPER_HALF_BLOCK;
-                    },
-                    Some(_bottom) => {// normal
+                    }
+                    Some(_bottom) => {
+                        // normal
+                        out_color = c;
                         out_char = LOWER_HALF_BLOCK;
                     }
-                }
+                },
             }
         }
         change_stdout_color(&mut stdout, out_color);
