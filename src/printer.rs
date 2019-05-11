@@ -4,14 +4,15 @@ use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 const UPPER_HALF_BLOCK: &str = "\u{2580}";
 const LOWER_HALF_BLOCK: &str = "\u{2584}";
+const EMPTY_BLOCK: &str = " ";
 
-pub fn print(img: &DynamicImage) {
+pub fn print(img: &DynamicImage, transparent: bool) {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
 
     let (width, _) = img.dimensions();
 
-    let mut curr_row_px = 0;
     let mut curr_col_px = 0;
+    let mut curr_row_px = 0;
     let mut buffer: Vec<ColorSpec> = Vec::with_capacity(width as usize);
     let mut mode: Status = Status::TopRow;
 
@@ -20,28 +21,33 @@ pub fn print(img: &DynamicImage) {
     //colors
     for pixel in img.pixels() {
         //if the alpha of the pixel is 0, print a predefined pixel based on the position in order
-        //to mimic the chess board background
+        //to mimic the chess board background. If the transparent option was given, instead print
+        //nothing.
         let color = if is_pixel_transparent(pixel) {
-            get_transparency_color(curr_row_px, curr_col_px)
+            if transparent {
+                None
+            } else {
+                Some(get_transparency_color(curr_row_px, curr_col_px))
+            }
         } else {
-            get_color(get_pixel_data(pixel))
+            Some(get_color(get_pixel_data(pixel)))
         };
 
         if mode == Status::TopRow {
             let mut c = ColorSpec::new();
-            c.set_bg(Some(color));
+            c.set_bg(color);
             buffer.push(c);
         } else {
             let colorspec_to_upg = &mut buffer[curr_col_px as usize];
-            colorspec_to_upg.set_fg(Some(color));
+            colorspec_to_upg.set_fg(color);
         }
         curr_col_px += 1;
         //if the buffer is full start adding the second row of pixels
         if is_buffer_full(&buffer, width) {
             if mode == Status::TopRow {
                 mode = Status::BottomRow;
-                curr_row_px += 1;
                 curr_col_px = 0;
+                curr_row_px += 1;
             }
             //only if the second row is completed flush the buffer and start again
             else if curr_col_px == width {
@@ -73,13 +79,48 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
         //because it will be only the last row which contains 1 pixel
         if is_flush {
             new_color = ColorSpec::new();
-            let bg = c.bg().unwrap();
-            new_color.set_fg(Some(*bg));
+            match c.bg() {
+                Some(bg) => {
+                    new_color.set_fg(Some(*bg));
+                    out_char = UPPER_HALF_BLOCK;
+                }
+                None => {
+                    out_char = EMPTY_BLOCK;
+                }
+            }
             out_color = &new_color;
-            out_char = UPPER_HALF_BLOCK;
         } else {
-            out_color = c;
-            out_char = LOWER_HALF_BLOCK;
+            match c.bg() {
+                None => match c.fg() {
+                    None => {
+                        // completely transparent
+                        new_color = ColorSpec::new();
+                        out_color = &new_color;
+                        out_char = EMPTY_BLOCK;
+                    }
+                    Some(bottom) => {
+                        // only top transparent
+                        new_color = ColorSpec::new();
+                        new_color.set_fg(Some(*bottom));
+                        out_color = &new_color;
+                        out_char = LOWER_HALF_BLOCK;
+                    }
+                },
+                Some(top) => match c.fg() {
+                    None => {
+                        // only bottom transparent
+                        new_color = ColorSpec::new();
+                        new_color.set_fg(Some(*top));
+                        out_color = &new_color;
+                        out_char = UPPER_HALF_BLOCK;
+                    }
+                    Some(_bottom) => {
+                        // normal
+                        out_color = c;
+                        out_char = LOWER_HALF_BLOCK;
+                    }
+                },
+            }
         }
         change_stdout_color(&mut stdout, out_color);
         write!(stdout, "{}", out_char).unwrap_or_else(|_| handle_broken_pipe());
