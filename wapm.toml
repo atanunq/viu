@@ -1,0 +1,15 @@
+[package]
+name = "viu"
+version = "0.1.1"
+description = "A small command-line application to view images from the terminal"
+readme = "WASI-README.md"
+repository = "https://github.com/wapm-packages/viu"
+
+[[module]]
+name = "viu"
+source = "target/wasm32-wasi/release/viu.wasm"
+abi = "wasi"
+
+[[command]]
+name = "viu"
+module = "viu"
