@@ -1,12 +1,12 @@
 extern crate libc;
 
-#[cfg(any(linux, unix))]
+#[cfg(not(target_os = "wasi"))]
 use libc::ioctl;
 
-#[cfg(any(linux, unix))]
+#[cfg(not(target_os = "wasi"))]
 use libc::{c_ushort, STDOUT_FILENO, TIOCGWINSZ};
 
-#[cfg(any(linux, unix))]
+#[cfg(not(target_os = "wasi"))]
 #[repr(C)]
 struct winsize {
     ws_row: c_ushort,
@@ -16,7 +16,7 @@ struct winsize {
 }
 
 pub fn get_size() -> Result<(u32, u32), &'static str> {
-    #[cfg(any(linux, unix))]
+    #[cfg(not(target_os = "wasi"))]
     {
         let w = winsize {
             ws_row: 0,
@@ -32,7 +32,7 @@ pub fn get_size() -> Result<(u32, u32), &'static str> {
         }
     }
 
-    #[cfg(not(any(linux, unix)))]
+    #[cfg(target_os = "wasi")]
     {
         Err("Could not get terminal size, using default width...")
     }

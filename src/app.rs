@@ -67,7 +67,7 @@ pub fn run(conf: Config) {
     let (tx_ctrlc, rx_print) = mpsc::channel();
     let (tx_print, rx_ctrlc) = mpsc::channel();
 
-    #[cfg(any(linux, unix))]
+    #[cfg(not(target_os = "wasi"))]
     {
         //handle Ctrl-C in order to clean up after ourselves
         ctrlc::set_handler(move || {
@@ -152,10 +152,10 @@ fn try_print_gif<R: Read>(
                     .unwrap();
                     let (_, height) = resize_and_print(&conf, ImageRgba8(buffer));
 
-                    #[cfg(any(linux, unix))]
+                    #[cfg(not(target_os = "wasi"))]
                     {
                         thread::sleep(thirty_millis);
-                        
+
                         //if ctrlc is received then respond so the handler can clear the
                         //terminal from leftover colors
                         if rx.try_recv().is_ok() {

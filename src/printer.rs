@@ -175,7 +175,7 @@ fn write_newline(stdout: &mut StandardStream) {
 
 //according to https://github.com/rust-lang/rust/issues/46016
 fn handle_broken_pipe() {
-    #[cfg(any(linux, unix))]
+    #[cfg(not(target_os = "wasi"))]
     unsafe {
         libc::signal(libc::SIGPIPE, libc::SIG_DFL);
     };
