@@ -1,4 +1,5 @@
 extern crate clap;
+#[cfg(any(linux, unix))]
 extern crate ctrlc;
 extern crate image;
 
