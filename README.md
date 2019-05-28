@@ -12,6 +12,14 @@ Features (see [Usage](#usage)):
 
 ### Installation
 
+#### From wapm
+
+Viu can be installed in Linux, macOS and Windows using [wapm](https://wapm.io/):
+
+```bash
+wapm install -g viu
+```
+
 #### From source
 Installation from source requires a local [Rust environment](https://www.rust-lang.org/tools/install).
 
