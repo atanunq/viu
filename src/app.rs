@@ -19,6 +19,7 @@ pub struct Config<'a> {
     files: Vec<&'a str>,
     mirror: bool,
     transparent: bool,
+    once: bool,
     width: Option<u32>,
     is_width_present: bool,
     height: Option<u32>,
@@ -51,6 +52,7 @@ impl<'a> Config<'a> {
             files,
             mirror: matches.is_present("mirror"),
             transparent: matches.is_present("transparent"),
+            once: matches.is_present("once"),
             width,
             is_width_present,
             height,
@@ -125,7 +127,7 @@ fn try_print_gif<R: Read>(
 ) -> Result<(), gif::DecodingError> {
     //only stop if there are other files to be previewed
     //so that if only the gif is viewed, it will loop infinitely
-    let should_loop = conf.files.len() <= 1;
+    let should_loop = (conf.files.len() <= 1) && !conf.once;
     let mut decoder = gif::Decoder::new(input_stream);
     decoder.set(gif::ColorOutput::RGBA);
     match decoder.read_info() {
