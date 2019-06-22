@@ -66,16 +66,20 @@ pub fn run(conf: Config) {
     //communicate when printing must be stopped
     let (tx_ctrlc, rx_print) = mpsc::channel();
     let (tx_print, rx_ctrlc) = mpsc::channel();
-    //handle Ctrl-C in order to clean up after ourselves
-    ctrlc::set_handler(move || {
-        //if ctrlc is received tell the infinite gif loop to stop drawing
-        tx_ctrlc.send(true).unwrap();
-        //a message will be received when that has happened so we can clear leftover symbols
-        let _ = rx_ctrlc.recv().unwrap();
-        print!("{}[0J", 27 as char);
-        std::process::exit(0);
-    })
-    .expect("Could not setup Ctrl-C handler");
+
+    #[cfg(not(target_os = "wasi"))]
+    {
+        //handle Ctrl-C in order to clean up after ourselves
+        ctrlc::set_handler(move || {
+            //if ctrlc is received tell the infinite gif loop to stop drawing
+            tx_ctrlc.send(true).unwrap();
+            //a message will be received when that has happened so we can clear leftover symbols
+            let _ = rx_ctrlc.recv().unwrap();
+            print!("{}[0J", 27 as char);
+            std::process::exit(0);
+        })
+        .expect("Could not setup Ctrl-C handler");
+    }
 
     //TODO: handle multiple files
     //TODO: maybe check an argument instead
@@ -147,13 +151,18 @@ fn try_print_gif<R: Read>(
                     )
                     .unwrap();
                     let (_, height) = resize_and_print(&conf, ImageRgba8(buffer));
-                    thread::sleep(thirty_millis);
-                    //if ctrlc is received then respond so the handler can clear the
-                    //terminal from leftover colors
-                    if rx.try_recv().is_ok() {
-                        tx.send(true).unwrap();
-                        break;
-                    };
+
+                    #[cfg(not(target_os = "wasi"))]
+                    {
+                        thread::sleep(thirty_millis);
+
+                        //if ctrlc is received then respond so the handler can clear the
+                        //terminal from leftover colors
+                        if rx.try_recv().is_ok() {
+                            tx.send(true).unwrap();
+                            break;
+                        };
+                    }
 
                     //keep replacing old pixels as the gif goes on so that scrollback
                     //buffer is not filled (do not do that if it is the last frame of the gif

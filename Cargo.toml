@@ -11,8 +11,13 @@ exclude = ["img/*"]
 
 [dependencies]
 libc = "0.2"
-image = "0.21.1"
 clap = "2.32.0"
 termcolor = "1"
-ctrlc = { version = "3.0", features = ["termination"] }
 gif = "0.10.1"
+
+[target.'cfg(target_os = "wasi")'.dependencies]
+image = { version = "0.21.1", default-features = false, features = ["gif_codec", "jpeg", "ico", "jpeg-decoder", "png_codec", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt"] }
+
+[target.'cfg(not(target_os = "wasi"))'.dependencies]
+ctrlc = { version = "3.0", features = ["termination"] }
+image = "0.21.1"

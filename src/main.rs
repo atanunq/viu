@@ -1,4 +1,5 @@
 extern crate clap;
+#[cfg(not(target_os = "wasi"))]
 extern crate ctrlc;
 extern crate image;
 
