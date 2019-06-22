@@ -16,6 +16,7 @@ struct winsize {
 }
 
 pub fn get_size() -> Result<(u32, u32), &'static str> {
+    let error_message = "Could not get terminal size, using default width...";
     #[cfg(not(target_os = "wasi"))]
     {
         let w = winsize {
@@ -28,12 +29,12 @@ pub fn get_size() -> Result<(u32, u32), &'static str> {
         match r {
             //1 less row because the prompt after executing the command the prompt will take a line
             0 => Ok((u32::from(w.ws_col), u32::from(w.ws_row) - 1)),
-            _ => Err("Could not get terminal size, using default width..."),
+            _ => Err(error_message),
         }
     }
 
     #[cfg(target_os = "wasi")]
     {
-        Err("Could not get terminal size, using default width...")
+        Err(error_message)
     }
 }
