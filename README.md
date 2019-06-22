@@ -105,6 +105,7 @@ USAGE:
 FLAGS:
     -m, --mirror        Display a mirror of the original image
     -t, --transparent   Display transparent pixels in the color of the terminal
+    -1, --once          Loop only once through each given gif, then quit
     -n, --name          Output the name of the file before displaying
     -v, --verbose       Output what is going on
 

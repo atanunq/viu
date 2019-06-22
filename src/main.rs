@@ -44,6 +44,12 @@ fn main() {
                 .help("Display transparent image with transparent background"),
         )
         .arg(
+            Arg::with_name("once")
+                .short("1")
+                .long("once")
+                .help("Only loop once through the animation"),
+        )
+        .arg(
             Arg::with_name("width")
                 .short("w")
                 .long("width")
