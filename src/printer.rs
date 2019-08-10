@@ -1,4 +1,4 @@
-use image::{DynamicImage, GenericImageView, Pixel, Rgba};
+use image::{DynamicImage, GenericImageView, Rgba};
 use std::io::Write;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
@@ -30,7 +30,7 @@ pub fn print(img: &DynamicImage, transparent: bool) {
                 Some(get_transparency_color(curr_row_px, curr_col_px))
             }
         } else {
-            Some(get_color(get_pixel_data(pixel)))
+            Some(get_color_from_pixel(pixel))
         };
 
         if mode == Status::TopRow {
@@ -132,13 +132,15 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
 }
 
 fn is_pixel_transparent(pixel: (u32, u32, Rgba<u8>)) -> bool {
-    pixel.2.data[3] == 0
+    let (_x, _y, data) = pixel;
+    data[3] == 0
 }
 
 //TODO: some gifs do not specify every pixel in every frame (they reuse old pixels)
 //experimenting is required to see how gifs like
 //https://media.giphy.com/media/13gvXfEVlxQjDO/giphy.gif behave
 fn get_transparency_color(row: u32, col: u32) -> Color {
+    //imitate the transparent chess board pattern
     if row % 2 == col % 2 {
         Color::Rgb(102, 102, 102)
     } else {
@@ -146,12 +148,9 @@ fn get_transparency_color(row: u32, col: u32) -> Color {
     }
 }
 
-fn get_pixel_data<T: Pixel>(pixel: (u32, u32, T)) -> T {
-    pixel.2
-}
-
-fn get_color(p: Rgba<u8>) -> Color {
-    Color::Rgb(p.data[0], p.data[1], p.data[2])
+fn get_color_from_pixel(pixel: (u32, u32, Rgba<u8>)) -> Color {
+    let (_x, _y, data) = pixel;
+    Color::Rgb(data[0], data[1], data[2])
 }
 
 fn is_buffer_full(buffer: &[ColorSpec], width: u32) -> bool {
@@ -192,6 +191,13 @@ enum Status {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_color_from_pixel() {
+        let color = get_color_from_pixel((0, 0, image::Rgba([100, 100, 100, 255])));
+        let expected_color = Color::Rgb(100, 100, 100);
+        assert!(color == expected_color)
+    }
 
     #[test]
     fn test_buffer_full() {
