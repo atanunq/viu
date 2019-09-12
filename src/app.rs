@@ -60,6 +60,8 @@ impl<'a> Config<'a> {
 pub fn run(conf: Config) {
     let no_files_passed = conf.files.is_empty();
 
+    //create two channels so that ctrlc-handler and the main thread can pass messages in order to
+    //communicate when printing must be stopped
     let (tx_ctrlc, rx_print) = mpsc::channel();
     let (tx_print, rx_ctrlc) = mpsc::channel();
 
@@ -76,6 +78,7 @@ pub fn run(conf: Config) {
         })
         .expect("Could not setup Ctrl-C handler");
     }
+
     //TODO: handle multiple files
     //TODO: maybe check an argument instead
     if no_files_passed {
@@ -130,9 +133,6 @@ fn try_print_gif<R: Read>(
     match decoder.read_info() {
         //if it is a legit gif read the frames and start printing them
         Ok(mut decoder) => {
-            //create two channels so that ctrlc-handler and the main thread can pass messages in order to
-            //communicate when printing must be stopped
-
             let mut frames_vec = Vec::new();
             while let Some(frame) = decoder.read_next_frame().unwrap() {
                 frames_vec.push(frame.to_owned());
