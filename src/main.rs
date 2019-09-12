@@ -1,13 +1,7 @@
-extern crate clap;
-#[cfg(not(target_os = "wasi"))]
-extern crate ctrlc;
-extern crate image;
-
 use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg};
 
 mod app;
 mod printer;
-mod size;
 
 fn main() {
     let matches = App::new(crate_name!())
