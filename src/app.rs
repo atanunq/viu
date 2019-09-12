@@ -60,6 +60,22 @@ impl<'a> Config<'a> {
 pub fn run(conf: Config) {
     let no_files_passed = conf.files.is_empty();
 
+    let (tx_ctrlc, rx_print) = mpsc::channel();
+    let (tx_print, rx_ctrlc) = mpsc::channel();
+
+    #[cfg(not(target_os = "wasi"))]
+    {
+        //handle Ctrl-C in order to clean up after ourselves
+        ctrlc::set_handler(move || {
+            //if ctrlc is received tell the infinite gif loop to stop drawing
+            tx_ctrlc.send(true).unwrap();
+            //a message will be received when that has happened so we can clear leftover symbols
+            let _ = rx_ctrlc.recv().unwrap();
+            print!("{}[0J", 27 as char);
+            std::process::exit(0);
+        })
+        .expect("Could not setup Ctrl-C handler");
+    }
     //TODO: handle multiple files
     //TODO: maybe check an argument instead
     if no_files_passed {
@@ -69,7 +85,7 @@ pub fn run(conf: Config) {
         let mut buf: Vec<u8> = Vec::new();
         let _ = handle.read_to_end(&mut buf).unwrap();
 
-        if try_print_gif(&conf, BufReader::new(&*buf)).is_err() {
+        if try_print_gif(&conf, BufReader::new(&*buf), &tx_print, &rx_print).is_err() {
             if let Ok(img) = image::load_from_memory(&buf) {
                 resize_and_print(&conf, img);
             } else {
@@ -94,13 +110,18 @@ pub fn run(conf: Config) {
             Ok(f) => f,
         };
 
-        if try_print_gif(&conf, BufReader::new(file_in)).is_err() {
+        if try_print_gif(&conf, BufReader::new(file_in), &tx_print, &rx_print).is_err() {
             //the provided image is not a gif so nothing special has to be done
             print_normal_image(&conf, filename);
         }
     }
 }
-fn try_print_gif<R: Read>(conf: &Config, input_stream: R) -> Result<(), gif::DecodingError> {
+fn try_print_gif<R: Read>(
+    conf: &Config,
+    input_stream: R,
+    tx: &mpsc::Sender<bool>,
+    rx: &mpsc::Receiver<bool>,
+) -> Result<(), gif::DecodingError> {
     //only stop if there are other files to be previewed
     //so that if only the gif is viewed, it will loop infinitely
     let should_loop = (conf.files.len() <= 1) && !conf.once;
@@ -111,22 +132,6 @@ fn try_print_gif<R: Read>(conf: &Config, input_stream: R) -> Result<(), gif::Dec
         Ok(mut decoder) => {
             //create two channels so that ctrlc-handler and the main thread can pass messages in order to
             //communicate when printing must be stopped
-            let (tx_ctrlc, rx_print) = mpsc::channel();
-            let (tx_print, rx_ctrlc) = mpsc::channel();
-
-            #[cfg(not(target_os = "wasi"))]
-            {
-                //handle Ctrl-C in order to clean up after ourselves
-                ctrlc::set_handler(move || {
-                    //if ctrlc is received tell the infinite gif loop to stop drawing
-                    tx_ctrlc.send(true).unwrap();
-                    //a message will be received when that has happened so we can clear leftover symbols
-                    let _ = rx_ctrlc.recv().unwrap();
-                    print!("{}[0J", 27 as char);
-                    std::process::exit(0);
-                })
-                .expect("Could not setup Ctrl-C handler");
-            }
 
             let mut frames_vec = Vec::new();
             while let Some(frame) = decoder.read_next_frame().unwrap() {
@@ -151,8 +156,8 @@ fn try_print_gif<R: Read>(conf: &Config, input_stream: R) -> Result<(), gif::Dec
 
                         //if ctrlc is received then respond so the handler can clear the
                         //terminal from leftover colors
-                        if rx_print.try_recv().is_ok() {
-                            tx_print.send(true).unwrap();
+                        if rx.try_recv().is_ok() {
+                            tx.send(true).unwrap();
                             break;
                         };
                     }
