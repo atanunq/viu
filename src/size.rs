@@ -25,7 +25,7 @@ pub fn get_size() -> Result<(u32, u32), &'static str> {
             ws_xpixel: 0,
             ws_ypixel: 0,
         };
-        let r = unsafe { ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) };
+        let r = unsafe { ioctl(STDOUT_FILENO, TIOCGWINSZ.into(), &w) };
         match r {
             //1 less row because the prompt after executing the command the prompt will take a line
             0 => Ok((u32::from(w.ws_col), u32::from(w.ws_row) - 1)),
