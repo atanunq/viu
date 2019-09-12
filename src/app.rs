@@ -7,7 +7,7 @@ use std::sync::mpsc;
 use std::{thread, time::Duration};
 
 use crate::printer;
-use crossterm_terminal::terminal;
+use crossterm::{terminal, Terminal};
 
 pub struct Config<'a> {
     verbose: bool,
@@ -20,6 +20,7 @@ pub struct Config<'a> {
     is_width_present: bool,
     height: Option<u32>,
     is_height_present: bool,
+    terminal: Terminal,
 }
 
 impl<'a> Config<'a> {
@@ -42,6 +43,8 @@ impl<'a> Config<'a> {
             Some(values) => values.collect(),
         };
 
+        let terminal = terminal();
+
         Config {
             verbose: matches.is_present("verbose"),
             name: matches.is_present("name"),
@@ -53,6 +56,7 @@ impl<'a> Config<'a> {
             is_width_present,
             height,
             is_height_present,
+            terminal,
         }
     }
 }
@@ -232,9 +236,8 @@ fn resize_and_print(conf: &Config, img: DynamicImage) -> (u32, u32) {
                     "Neither width, nor height is specified, therefore terminal size will be matched..."
                 );
         }
-        let terminal = terminal();
 
-        let (term_w, term_h) = terminal.terminal_size();
+        let (term_w, term_h) = conf.terminal.terminal_size();
         let w = u32::from(term_w);
         //One less row because two reasons:
         // - the prompt after executing the command will take a line
