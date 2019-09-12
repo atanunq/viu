@@ -9,6 +9,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
+    - uses: hecrj/setup-rust-action@master
+      with:
+        rust-version: stable
     - uses: actions/checkout@v1
     - name: Build
       run: cargo build --verbose
