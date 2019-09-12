@@ -7,11 +7,7 @@ use std::sync::mpsc;
 use std::{thread, time::Duration};
 
 use crate::printer;
-use crate::size;
-
-//default width to be used when no options are passed and terminal size could not be computed
-//maybe use env variable?
-const DEFAULT_PRINT_WIDTH: u32 = 100;
+use crossterm_terminal::terminal;
 
 pub struct Config<'a> {
     verbose: bool,
@@ -64,25 +60,6 @@ impl<'a> Config<'a> {
 pub fn run(conf: Config) {
     let no_files_passed = conf.files.is_empty();
 
-    //create two channels so that ctrlc-handler and the main thread can pass messages in order to
-    //communicate when printing must be stopped
-    let (tx_ctrlc, rx_print) = mpsc::channel();
-    let (tx_print, rx_ctrlc) = mpsc::channel();
-
-    #[cfg(not(target_os = "wasi"))]
-    {
-        //handle Ctrl-C in order to clean up after ourselves
-        ctrlc::set_handler(move || {
-            //if ctrlc is received tell the infinite gif loop to stop drawing
-            tx_ctrlc.send(true).unwrap();
-            //a message will be received when that has happened so we can clear leftover symbols
-            let _ = rx_ctrlc.recv().unwrap();
-            print!("{}[0J", 27 as char);
-            std::process::exit(0);
-        })
-        .expect("Could not setup Ctrl-C handler");
-    }
-
     //TODO: handle multiple files
     //TODO: maybe check an argument instead
     if no_files_passed {
@@ -92,7 +69,7 @@ pub fn run(conf: Config) {
         let mut buf: Vec<u8> = Vec::new();
         let _ = handle.read_to_end(&mut buf).unwrap();
 
-        if try_print_gif(&conf, BufReader::new(&*buf), &tx_print, &rx_print).is_err() {
+        if try_print_gif(&conf, BufReader::new(&*buf)).is_err() {
             if let Ok(img) = image::load_from_memory(&buf) {
                 resize_and_print(&conf, img);
             } else {
@@ -117,18 +94,13 @@ pub fn run(conf: Config) {
             Ok(f) => f,
         };
 
-        if try_print_gif(&conf, BufReader::new(file_in), &tx_print, &rx_print).is_err() {
+        if try_print_gif(&conf, BufReader::new(file_in)).is_err() {
             //the provided image is not a gif so nothing special has to be done
             print_normal_image(&conf, filename);
         }
     }
 }
-fn try_print_gif<R: Read>(
-    conf: &Config,
-    input_stream: R,
-    tx: &mpsc::Sender<bool>,
-    rx: &mpsc::Receiver<bool>,
-) -> Result<(), gif::DecodingError> {
+fn try_print_gif<R: Read>(conf: &Config, input_stream: R) -> Result<(), gif::DecodingError> {
     //only stop if there are other files to be previewed
     //so that if only the gif is viewed, it will loop infinitely
     let should_loop = (conf.files.len() <= 1) && !conf.once;
@@ -137,6 +109,25 @@ fn try_print_gif<R: Read>(
     match decoder.read_info() {
         //if it is a legit gif read the frames and start printing them
         Ok(mut decoder) => {
+            //create two channels so that ctrlc-handler and the main thread can pass messages in order to
+            //communicate when printing must be stopped
+            let (tx_ctrlc, rx_print) = mpsc::channel();
+            let (tx_print, rx_ctrlc) = mpsc::channel();
+
+            #[cfg(not(target_os = "wasi"))]
+            {
+                //handle Ctrl-C in order to clean up after ourselves
+                ctrlc::set_handler(move || {
+                    //if ctrlc is received tell the infinite gif loop to stop drawing
+                    tx_ctrlc.send(true).unwrap();
+                    //a message will be received when that has happened so we can clear leftover symbols
+                    let _ = rx_ctrlc.recv().unwrap();
+                    print!("{}[0J", 27 as char);
+                    std::process::exit(0);
+                })
+                .expect("Could not setup Ctrl-C handler");
+            }
+
             let mut frames_vec = Vec::new();
             while let Some(frame) = decoder.read_next_frame().unwrap() {
                 frames_vec.push(frame.to_owned());
@@ -160,8 +151,8 @@ fn try_print_gif<R: Read>(
 
                         //if ctrlc is received then respond so the handler can clear the
                         //terminal from leftover colors
-                        if rx.try_recv().is_ok() {
-                            tx.send(true).unwrap();
+                        if rx_print.try_recv().is_ok() {
+                            tx_print.send(true).unwrap();
                             break;
                         };
                     }
@@ -236,25 +227,20 @@ fn resize_and_print(conf: &Config, img: DynamicImage) -> (u32, u32) {
                     "Neither width, nor height is specified, therefore terminal size will be matched..."
                 );
         }
-        match size::get_size() {
-            Ok((w, h)) => {
-                //only change values if the image needs to be resized
-                //i.e is bigger than the terminal's size
-                if width > w {
-                    print_width = w;
-                }
-                if height > h {
-                    print_height = 2 * h;
-                }
-            }
-            Err(e) => {
-                if conf.verbose {
-                    eprintln!("{}", e);
-                }
-                //could not get terminal width => we fall back to a predefined value
-                print_width = DEFAULT_PRINT_WIDTH;
-            }
-        };
+        let terminal = terminal();
+
+        let (term_w, term_h) = terminal.terminal_size();
+        let w = u32::from(term_w);
+        //One less row because two reasons:
+        // - the prompt after executing the command will take a line
+        // - gifs flicker
+        let h = u32::from(term_h - 1);
+        if width > w {
+            print_width = w;
+        }
+        if height > h {
+            print_height = 2 * h;
+        }
         if conf.verbose {
             println!(
                 "Usable space is {}x{}, resizing and preserving aspect ratio...",
