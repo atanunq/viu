@@ -22,7 +22,6 @@ pub struct Config<'a> {
     is_height_present: bool,
     terminal: Terminal,
 }
-
 impl<'a> Config<'a> {
     pub fn new(matches: &'a ArgMatches) -> Config<'a> {
         let is_width_present = matches.is_present("width");
