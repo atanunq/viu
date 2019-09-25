@@ -237,7 +237,20 @@ fn resize_and_print(conf: &Config, img: DynamicImage) -> (u32, u32) {
                 );
         }
 
-        let (term_w, term_h) = conf.terminal.terminal_size();
+        let size;
+        match conf.terminal.size() {
+            Ok(s) => {
+                size = s;
+            }
+            Err(e) => {
+                //If getting terminal size fails, fall back to some default size
+                size = (100, 40);
+                if conf.verbose {
+                    eprintln!("{}", e);
+                }
+            }
+        }
+        let (term_w, term_h) = size;
         let w = u32::from(term_w);
         //One less row because two reasons:
         // - the prompt after executing the command will take a line
