@@ -57,6 +57,12 @@ fn main() {
                 .takes_value(true)
                 .help("Resize the image to a provided height"),
         )
+        .arg(
+            Arg::with_name("recursive")
+                .short("r")
+                .long("recursive")
+                .help("Recurse down directories if passed one"),
+        )
         .get_matches();
     let conf = app::Config::new(&matches);
     app::run(conf);
