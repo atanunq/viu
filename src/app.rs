@@ -1,13 +1,12 @@
+use crate::printer;
 use clap::{value_t, ArgMatches};
+use crossterm::{terminal, Terminal};
 use gif::SetParameter;
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageRgba8};
 use std::fs::File;
 use std::io::{self, BufReader, Read};
 use std::sync::mpsc;
 use std::{thread, time::Duration};
-
-use crate::printer;
-use crossterm::{terminal, Terminal};
 
 pub struct Config<'a> {
     verbose: bool,
@@ -17,22 +16,18 @@ pub struct Config<'a> {
     transparent: bool,
     once: bool,
     width: Option<u32>,
-    is_width_present: bool,
     height: Option<u32>,
-    is_height_present: bool,
     terminal: Terminal,
 }
 
 impl<'a> Config<'a> {
     pub fn new(matches: &'a ArgMatches) -> Config<'a> {
-        let is_width_present = matches.is_present("width");
-        let is_height_present = matches.is_present("height");
-        let width = if is_width_present {
+        let width = if matches.is_present("width") {
             Some(value_t!(matches, "width", u32).unwrap_or_else(|e| e.exit()))
         } else {
             None
         };
-        let height = if is_height_present {
+        let height = if matches.is_present("height") {
             Some(value_t!(matches, "height", u32).unwrap_or_else(|e| e.exit()))
         } else {
             None
@@ -53,9 +48,7 @@ impl<'a> Config<'a> {
             transparent: matches.is_present("transparent"),
             once: matches.is_present("once"),
             width,
-            is_width_present,
             height,
-            is_height_present,
             terminal,
         }
     }
@@ -101,6 +94,7 @@ pub fn run(conf: Config) {
             };
         }
     }
+
     //loop throught all files passed
     for filename in conf.files.iter() {
         if conf.name {
@@ -123,6 +117,7 @@ pub fn run(conf: Config) {
         }
     }
 }
+
 fn try_print_gif<R: Read>(
     conf: &Config,
     input_stream: R,
@@ -201,83 +196,92 @@ fn error_and_quit(filename: &str, e: String) {
     std::process::exit(1);
 }
 
-fn resize_and_print(conf: &Config, img: DynamicImage) -> (u32, u32) {
-    let mut print_img;
+fn resize(conf: &Config, img: &DynamicImage) -> DynamicImage {
+    let mut new_img;
     let (width, height) = img.dimensions();
     let (mut print_width, mut print_height) = img.dimensions();
 
-    if conf.is_width_present {
-        print_width = conf.width.unwrap();
+    if let Some(w) = conf.width {
+        print_width = w;
     }
-    if conf.is_height_present {
+    if let Some(h) = conf.height {
         //since 2 pixels are printed per terminal cell, an image with twice the height can be fit
-        print_height = 2 * conf.height.unwrap();
+        print_height = 2 * h;
     }
-    if conf.is_width_present && conf.is_height_present {
-        if conf.verbose {
-            println!(
-                    "Both width and height are specified, resizing to {}x{} without preserving aspect ratio...",
-                    print_width,
-                    print_height
+    match (conf.width, conf.height) {
+        (None, None) => {
+            if conf.verbose {
+                println!(
+                "Neither width, nor height is specified, therefore terminal size will be matched..."
+            );
+            }
+
+            let size;
+            match conf.terminal.size() {
+                Ok(s) => {
+                    size = s;
+                }
+                Err(e) => {
+                    //If getting terminal size fails, fall back to some default size
+                    size = (100, 40);
+                    if conf.verbose {
+                        eprintln!("{}", e);
+                    }
+                }
+            }
+            let (term_w, term_h) = size;
+            let w = u32::from(term_w);
+            //One less row because two reasons:
+            // - the prompt after executing the command will take a line
+            // - gifs flicker
+            let h = u32::from(term_h - 1);
+            if width > w {
+                print_width = w;
+            }
+            if height > h {
+                print_height = 2 * h;
+            }
+            if conf.verbose {
+                println!(
+                    "Usable space is {}x{}, resizing and preserving aspect ratio...",
+                    print_width, print_height
                 );
+            }
+            new_img = img.thumbnail(print_width, print_height);
         }
-        print_img = img.thumbnail_exact(print_width, print_height);
-    } else if conf.is_width_present || conf.is_height_present {
-        if conf.verbose {
-            println!(
+        (Some(_), None) | (None, Some(_)) => {
+            if conf.verbose {
+                println!(
                     "Either width or height is specified, resizing to {}x{} and preserving aspect ratio...",
                     print_width, print_height
                 );
-        }
-        print_img = img.thumbnail(print_width, print_height);
-    } else {
-        if conf.verbose {
-            println!(
-                    "Neither width, nor height is specified, therefore terminal size will be matched..."
-                );
-        }
-
-        let size;
-        match conf.terminal.size() {
-            Ok(s) => {
-                size = s;
             }
-            Err(e) => {
-                //If getting terminal size fails, fall back to some default size
-                size = (100, 40);
-                if conf.verbose {
-                    eprintln!("{}", e);
-                }
-            }
+            new_img = img.thumbnail(print_width, print_height);
         }
-        let (term_w, term_h) = size;
-        let w = u32::from(term_w);
-        //One less row because two reasons:
-        // - the prompt after executing the command will take a line
-        // - gifs flicker
-        let h = u32::from(term_h - 1);
-        if width > w {
-            print_width = w;
-        }
-        if height > h {
-            print_height = 2 * h;
-        }
-        if conf.verbose {
-            println!(
-                "Usable space is {}x{}, resizing and preserving aspect ratio...",
-                print_width, print_height
+        (Some(_w), Some(_h)) => {
+            if conf.verbose {
+                println!(
+                "Both width and height are specified, resizing to {}x{} without preserving aspect ratio...",
+                print_width,
+                print_height
             );
+            }
+            new_img = img.thumbnail_exact(print_width, print_height);
         }
-        print_img = img.thumbnail(print_width, print_height);
-    }
+    };
 
     if conf.mirror {
-        print_img = print_img.fliph();
-    }
+        new_img = new_img.fliph();
+    };
+    new_img
+}
 
-    printer::print(&print_img, conf.transparent);
+fn resize_and_print(conf: &Config, img: DynamicImage) -> (u32, u32) {
+    let new_img = resize(conf, &img);
 
-    let (print_width, print_height) = print_img.dimensions();
+    printer::print(&new_img, conf.transparent);
+
+    let (print_width, print_height) = new_img.dimensions();
     let (width, height) = img.dimensions();
     if conf.verbose {
         println!(
@@ -286,5 +290,85 @@ fn resize_and_print(conf: &Config, img: DynamicImage) -> (u32, u32) {
         );
     }
 
-    print_img.dimensions()
+    new_img.dimensions()
+}
+
+#[cfg(test)]
+mod test {
+    use crate::app::{resize, Config};
+    use crossterm::terminal;
+    use image::GenericImageView;
+
+    impl<'a> Config<'a> {
+        fn test_config() -> Config<'a> {
+            Config {
+                verbose: false,
+                name: false,
+                files: vec!["img/bfa.jpg"],
+                mirror: false,
+                transparent: false,
+                once: false,
+                width: None,
+                height: None,
+                terminal: terminal(),
+            }
+        }
+    }
+
+    #[test]
+    fn test_resize_with_none() {
+        let conf = Config::test_config();
+        match image::open("img/bfa.jpg") {
+            Ok(i) => {
+                //make sure the app doesn't panic without input
+                let _img = resize(&conf, &i);
+            }
+            Err(_) => {
+                panic!("Could not run resize test");
+            }
+        };
+    }
+    #[test]
+    fn test_resize_only_width() {
+        let mut conf = Config::test_config();
+        conf.width = Some(200);
+        match image::open("img/bfa.jpg") {
+            Ok(i) => {
+                let img = resize(&conf, &i);
+                assert_eq!(img.dimensions(), (200, 112));
+            }
+            Err(_) => {
+                panic!("Could not run resize test");
+            }
+        };
+    }
+    #[test]
+    fn test_resize_only_height() {
+        let mut conf = Config::test_config();
+        conf.height = Some(20);
+        match image::open("img/bfa.jpg") {
+            Ok(i) => {
+                let img = resize(&conf, &i);
+                assert_eq!(img.dimensions(), (71, 40));
+            }
+            Err(_) => {
+                panic!("Could not run resize test");
+            }
+        };
+    }
+    #[test]
+    fn test_resize_given_both() {
+        let mut conf = Config::test_config();
+        conf.height = Some(20);
+        conf.width = Some(200);
+        match image::open("img/bfa.jpg") {
+            Ok(i) => {
+                let img = resize(&conf, &i);
+                assert_eq!(img.dimensions(), (200, 40));
+            }
+            Err(_) => {
+                panic!("Could not run resize test");
+            }
+        };
+    }
 }
