@@ -12,7 +12,12 @@ jobs:
     - uses: hecrj/setup-rust-action@master
       with:
         rust-version: stable
+        components: clippy, rustfmt
     - uses: actions/checkout@v1
+    - name: Format
+      run: cargo fmt --all -- --check
+    - name: Lint
+      run: cargo clippy -- -D warnings
     - name: Build
       run: cargo build --verbose
     - name: Run tests
