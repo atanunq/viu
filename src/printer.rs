@@ -182,7 +182,7 @@ fn handle_broken_pipe() {
 
 //enum used to keep track where the current line of pixels processed should be displayed - as
 //background or foreground color
-#[derive(PartialEq, std::fmt::Debug)]
+#[derive(PartialEq)]
 enum Status {
     TopRow,
     BottomRow,
@@ -210,11 +210,5 @@ mod test {
         let mut buffer = vec![ColorSpec::new(), ColorSpec::new()];
         print_buffer(&mut buffer, false);
         assert_eq!(buffer.len(), 0);
-    }
-    #[test]
-    fn test_status_eq() {
-        let s1 = Status::TopRow;
-        let s2 = Status::BottomRow;
-        assert_ne!(s1, s2);
     }
 }
