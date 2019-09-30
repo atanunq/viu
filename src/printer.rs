@@ -137,8 +137,8 @@ fn is_pixel_transparent(pixel: (u32, u32, Rgba<u8>)) -> bool {
 }
 
 //TODO: some gifs do not specify every pixel in every frame (they reuse old pixels)
-//experimenting is required to see how gifs like
-//https://media.giphy.com/media/13gvXfEVlxQjDO/giphy.gif behave
+// experimenting is required to see how gifs like
+// https://media.giphy.com/media/13gvXfEVlxQjDO/giphy.gif behave
 fn get_transparency_color(row: u32, col: u32) -> Color {
     //imitate the transparent chess board pattern
     if row % 2 == col % 2 {
@@ -182,7 +182,7 @@ fn handle_broken_pipe() {
 
 //enum used to keep track where the current line of pixels processed should be displayed - as
 //background or foreground color
-#[derive(PartialEq)]
+#[derive(PartialEq, std::fmt::Debug)]
 enum Status {
     TopRow,
     BottomRow,
@@ -190,13 +190,13 @@ enum Status {
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use crate::printer::*;
 
     #[test]
     fn test_color_from_pixel() {
         let color = get_color_from_pixel((0, 0, image::Rgba([100, 100, 100, 255])));
         let expected_color = Color::Rgb(100, 100, 100);
-        assert!(color == expected_color)
+        assert_eq!(color, expected_color)
     }
 
     #[test]
@@ -209,12 +209,12 @@ mod test {
     fn test_print_buffer() {
         let mut buffer = vec![ColorSpec::new(), ColorSpec::new()];
         print_buffer(&mut buffer, false);
-        assert!(buffer.len() == 0);
+        assert_eq!(buffer.len(), 0);
     }
     #[test]
     fn test_status_eq() {
         let s1 = Status::TopRow;
         let s2 = Status::BottomRow;
-        assert!(s1 != s2);
+        assert_ne!(s1, s2);
     }
 }
