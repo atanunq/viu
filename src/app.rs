@@ -111,7 +111,7 @@ fn view_passed_files(conf: &mut Config, tx: &mpsc::Sender<bool>, rx: &mpsc::Rece
                     conf.loop_gif = false;
                     view_directory(&*conf, filename, tx, rx);
                 } else {
-                    view_file(&*conf, filename, tx, rx, false);
+                    view_file(&*conf, filename, false, tx, rx);
                 }
             }
             Err(e) => eprintln!("{}", e),
@@ -141,7 +141,7 @@ fn view_directory(
                                     view_directory(conf, f.path().to_str().unwrap(), tx, rx);
                                 }
                             } else {
-                                view_file(conf, f.path().to_str().unwrap(), tx, rx, true);
+                                view_file(conf, f.path().to_str().unwrap(), true, tx, rx);
                             }
                         }
                         Err(e) => eprintln!("{}", e),
@@ -157,9 +157,9 @@ fn view_directory(
 fn view_file(
     conf: &Config,
     filename: &str,
+    tolerant: bool,
     tx: &mpsc::Sender<bool>,
     rx: &mpsc::Receiver<bool>,
-    tolerant: bool,
 ) {
     let file_in = match fs::File::open(filename) {
         Err(e) => {
