@@ -88,6 +88,7 @@ Examples:
 
 - `viu img/giphy.gif`
 - `viu img/*`
+- `viu ~/Pictures -rn`
 
 
 The shell will expand the wildcard above and *viu* will display all the images in the folder one after the other. For a more informative output when dealing with folders the flag **-n** could be used.
@@ -100,14 +101,15 @@ If no flags are supplied to *viu* it will try to get the size of the terminal wh
 ##### Command line options
 ```
 USAGE:
-    viu [FLAGS] [OPTIONS] <FILE>...
+    viu [FLAGS] [OPTIONS] [FILE]...
 
 FLAGS:
-    -m, --mirror        Display a mirror of the original image
-    -t, --transparent   Display transparent pixels in the color of the terminal
-    -1, --once          Loop only once through each given gif, then quit
-    -n, --name          Output the name of the file before displaying
-    -v, --verbose       Output what is going on
+    -m, --mirror         Display a mirror of the original image
+    -n, --name           Output the name of the file before displaying
+    -1, --once           Only loop once through the animation
+    -r, --recursive      Recurse down directories if passed one
+    -t, --transparent    Display transparent image with transparent background
+    -v, --verbose        Output what is going on
 
 OPTIONS:
     -h, --height <height>    Resize the image to a provided height
