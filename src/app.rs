@@ -60,7 +60,7 @@ impl<'a> Config<'a> {
 
 pub fn run(mut conf: Config) {
     //create two channels so that ctrlc-handler and the main thread can pass messages in order to
-    //communicate when printing must be stopped
+    // communicate when printing must be stopped without distorting the current frame
     let (tx_ctrlc, rx_print) = mpsc::channel();
     let (tx_print, rx_ctrlc) = mpsc::channel();
 
@@ -69,6 +69,7 @@ pub fn run(mut conf: Config) {
         //handle Ctrl-C in order to clean up after ourselves
         ctrlc::set_handler(move || {
             //if ctrlc is received tell the infinite gif loop to stop drawing
+            // or stop the next file from being drawn
             tx_ctrlc.send(true).unwrap();
             //a message will be received when that has happened so we can clear leftover symbols
             let _ = rx_ctrlc.recv().unwrap();
@@ -127,6 +128,11 @@ fn view_directory(
     match fs::read_dir(dirname) {
         Ok(iter) => {
             for file in iter {
+                //check if Ctrl-C has been received
+                if rx.try_recv().is_ok() {
+                    tx.send(true).unwrap();
+                    break;
+                };
                 match file {
                     Ok(f) => match f.metadata() {
                         Ok(m) => {
@@ -157,7 +163,7 @@ fn view_file(
 ) {
     let file_in = match fs::File::open(filename) {
         Err(e) => {
-            error_and_quit(filename, e.to_string());
+            eprintln!("{}", e);
             return;
         }
         Ok(f) => f,
