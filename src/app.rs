@@ -159,8 +159,9 @@ fn view_directory(
     }
 }
 
-//stop the program only if a file passed directly could not be decoded
-// however, fail silently if the file is in a directory we are traversing
+//the tolerance argument specifies whether the program will exit on error
+// (when one of the passed files could not be viewed)
+// or fail silently and continue (for a file in a directory)
 fn view_file(
     conf: &Config,
     filename: &str,
