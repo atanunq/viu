@@ -64,6 +64,7 @@ fn main() {
                 .help("Recurse down directories if passed one"),
         )
         .get_matches();
+
     let conf = app::Config::new(&matches);
     app::run(conf);
 }

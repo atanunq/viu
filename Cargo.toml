@@ -17,8 +17,8 @@ gif = "0.10.3"
 crossterm = { version= "^0.11", default-features = false, features = ["terminal"] }
 
 [target.'cfg(target_os = "wasi")'.dependencies]
-image = { version = "0.22.2", default-features = false, features = ["gif_codec", "jpeg", "ico", "jpeg-decoder", "png_codec", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt"] }
+image = { version = "0.22.3", default-features = false, features = ["gif_codec", "jpeg", "ico", "jpeg-decoder", "png_codec", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt"] }
 
 [target.'cfg(not(target_os = "wasi"))'.dependencies]
 ctrlc = { version = "3.1.3", features = ["termination"] }
-image = "0.22.2"
+image = "0.22.3"

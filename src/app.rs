@@ -94,7 +94,8 @@ pub fn run(mut conf: Config) {
                 resize_and_print(&conf, true, img);
             } else {
                 let err = String::from("Data from stdin could not be decoded as an image.");
-                error_and_quit("Stdin", err);
+                //we want to exit the program => be verbose and have no tolerance
+                error_and_quit("Stdin", err, true, false);
             };
         }
     } else {
@@ -134,26 +135,33 @@ fn view_directory(
                     break;
                 };
                 match file {
+                    //check if the given file is a directory
                     Ok(f) => match f.metadata() {
                         Ok(m) => {
                             if m.is_dir() {
+                                //if -r is passed, continue down
                                 if conf.recursive {
                                     view_directory(conf, f.path().to_str().unwrap(), tx, rx);
                                 }
-                            } else {
+                            }
+                            //if it is a regular file, view it
+                            else {
                                 view_file(conf, f.path().to_str().unwrap(), true, tx, rx);
                             }
                         }
-                        Err(e) => eprintln!("{}", e),
+                        Err(e) => eprintln!("Could not fetch file metadata: {}", e),
                     },
-                    Err(e) => eprintln!("{}", e),
+                    Err(e) => eprintln!("Iterator failed to provide a DirEntry: {}", e),
                 }
             }
         }
-        Err(e) => eprintln!("{}", e),
+        Err(e) => eprintln!("Could not get directory iterator: {}", e),
     }
 }
 
+//the tolerance argument specifies whether the program will exit on error
+// (when one of the passed files could not be viewed)
+// or fail silently and continue (for a file in a directory)
 fn view_file(
     conf: &Config,
     filename: &str,
@@ -169,22 +177,37 @@ fn view_file(
         Ok(f) => f,
     };
 
+    //errors should be reported if -v is passed or if we do not tolerate them
+    let should_report_err = conf.verbose || !tolerant;
+
     if try_print_gif(conf, filename, BufReader::new(file_in), tx, rx).is_err() {
-        //the provided image is not a gif so nothing special has to be done
-        match image::open(filename) {
-            Ok(i) => {
-                if conf.name {
-                    println!("{}:", filename);
-                }
-                resize_and_print(conf, true, i);
-            }
-            Err(e) => {
-                if !tolerant {
-                    error_and_quit(filename, e.to_string());
-                } else if conf.verbose {
-                    eprintln!("{}: Could not be decoded, skipping", filename);
-                }
-            }
+        //the provided image is not a gif so try to view it
+        match image::io::Reader::open(filename) {
+            Ok(i) => match i.with_guessed_format() {
+                Ok(img) => match img.decode() {
+                    Ok(decoded) => {
+                        if conf.name {
+                            println!("{}:", filename);
+                        }
+                        resize_and_print(conf, true, decoded);
+                    }
+                    //Could not guess format
+                    Err(e) => error_and_quit(filename, e.to_string(), should_report_err, tolerant),
+                },
+
+                Err(e) => error_and_quit(
+                    filename,
+                    format!("An IO error occured while docoding: {}", e),
+                    should_report_err,
+                    tolerant,
+                ),
+            },
+            Err(e) => error_and_quit(
+                filename,
+                format!("Could not open file: {}", e),
+                should_report_err,
+                tolerant,
+            ),
         };
     }
 }
@@ -252,9 +275,13 @@ fn try_print_gif<R: Read>(
     }
 }
 
-fn error_and_quit(filename: &str, e: String) {
-    eprintln!("\"{}\": {}", filename, e);
-    std::process::exit(1);
+fn error_and_quit(filename: &str, e: String, verbose: bool, tolerant: bool) {
+    if verbose {
+        eprintln!("\"{}\": {}", filename, e);
+    }
+    if !tolerant {
+        std::process::exit(1);
+    }
 }
 
 fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
@@ -356,9 +383,10 @@ fn resize_and_print(conf: &Config, is_not_gif: bool, img: DynamicImage) -> (u32,
 
 #[cfg(test)]
 mod test {
-    use crate::app::{resize, Config};
+    use crate::app::{resize, view_file, Config};
     use crossterm::terminal;
     use image::GenericImageView;
+    use std::sync::mpsc;
 
     impl<'a> Config<'a> {
         fn test_config() -> Config<'a> {
@@ -432,5 +460,11 @@ mod test {
                 panic!("Could not run resize test");
             }
         };
+    }
+    #[test]
+    fn test_view_without_extension() {
+        let conf = Config::test_config();
+        let (tx, rx) = mpsc::channel();
+        view_file(&conf, "img/bfa", false, &tx, &rx);
     }
 }
