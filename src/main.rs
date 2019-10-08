@@ -1,4 +1,4 @@
-use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg};
+use clap::{crate_authors, crate_description, crate_name, crate_version, App, AppSettings, Arg};
 
 mod app;
 mod printer;
@@ -8,6 +8,7 @@ fn main() {
         .version(crate_version!())
         .author(crate_authors!())
         .about(crate_description!())
+        .setting(AppSettings::ArgRequiredElseHelp)
         .arg(
             Arg::with_name("FILE")
                 .help("The image to be displayed")
