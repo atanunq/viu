@@ -14,7 +14,7 @@ libc = "0.2"
 clap = "2.33.0"
 termcolor = "1.0.5"
 gif = "0.10.3"
-crossterm = { version= "^0.11", default-features = false, features = ["terminal"] }
+crossterm = { version= "0.12", default-features = false, features = ["terminal"] }
 
 [target.'cfg(target_os = "wasi")'.dependencies]
 image = { version = "0.22.3", default-features = false, features = ["gif_codec", "jpeg", "ico", "jpeg-decoder", "png_codec", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt"] }
