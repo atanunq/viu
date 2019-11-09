@@ -1,6 +1,6 @@
 use crate::printer;
 use clap::{value_t, ArgMatches};
-use crossterm::{terminal, Terminal};
+use crossterm::terminal;
 use gif::SetParameter;
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageRgba8};
 use std::fs;
@@ -18,7 +18,6 @@ pub struct Config<'a> {
     recursive: bool,
     width: Option<u32>,
     height: Option<u32>,
-    terminal: Terminal,
 }
 
 impl<'a> Config<'a> {
@@ -39,7 +38,6 @@ impl<'a> Config<'a> {
             Some(values) => values.collect(),
         };
 
-        let terminal = terminal();
         let once = matches.is_present("once");
         let loop_gif = files.len() <= 1 && !once;
 
@@ -53,7 +51,6 @@ impl<'a> Config<'a> {
             recursive: matches.is_present("recursive"),
             width,
             height,
-            terminal,
         }
     }
 }
@@ -305,7 +302,7 @@ fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
             }
 
             let size;
-            match conf.terminal.size() {
+            match terminal::size() {
                 Ok(s) => {
                     size = s;
                 }
@@ -384,7 +381,6 @@ fn resize_and_print(conf: &Config, is_not_gif: bool, img: DynamicImage) -> (u32,
 #[cfg(test)]
 mod test {
     use crate::app::{resize, view_file, Config};
-    use crossterm::terminal;
     use image::GenericImageView;
     use std::sync::mpsc;
 
@@ -400,7 +396,6 @@ mod test {
                 recursive: false,
                 width: None,
                 height: None,
-                terminal: terminal(),
             }
         }
     }
