@@ -190,7 +190,10 @@ enum Status {
 
 #[cfg(test)]
 mod test {
-    use crate::printer::*;
+    use crate::printer::{
+        get_color_from_pixel, get_transparency_color, is_buffer_full, print_buffer,
+    };
+    use termcolor::{Color, ColorSpec};
 
     #[test]
     fn test_color_from_pixel() {
@@ -205,10 +208,20 @@ mod test {
         let width = 2;
         assert!(is_buffer_full(&buffer, width));
     }
+
     #[test]
     fn test_print_buffer() {
         let mut buffer = vec![ColorSpec::new(), ColorSpec::new()];
         print_buffer(&mut buffer, false);
         assert_eq!(buffer.len(), 0);
+    }
+
+    #[test]
+    fn test_get_transparency_color() {
+        let x1y1 = get_transparency_color(1, 1);
+        let x2y2 = get_transparency_color(2, 2);
+        let x3y2 = get_transparency_color(3, 2);
+        assert_eq!(x1y1, x2y2);
+        assert_ne!(x2y2, x3y2);
     }
 }

@@ -107,9 +107,9 @@ fn view_passed_files(conf: &mut Config, tx: &mpsc::Sender<bool>, rx: &mpsc::Rece
             Ok(m) => {
                 if m.is_dir() {
                     conf.loop_gif = false;
-                    view_directory(&*conf, filename, tx, rx);
+                    view_directory(conf, filename, tx, rx);
                 } else {
-                    view_file(&*conf, filename, false, tx, rx);
+                    view_file(conf, filename, false, tx, rx);
                 }
             }
             Err(e) => eprintln!("{}", e),
@@ -156,9 +156,9 @@ fn view_directory(
     }
 }
 
-//the tolerance argument specifies whether the program will exit on error
-// (when one of the passed files could not be viewed)
-// or fail silently and continue (for a file in a directory)
+//the tolerance argument specifies either if the program will
+// - exit on error (when one of the passed files could not be viewed)
+// - fail silently and continue (for a file in a directory)
 fn view_file(
     conf: &Config,
     filename: &str,
@@ -297,8 +297,8 @@ fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
         (None, None) => {
             if conf.verbose && is_not_gif {
                 println!(
-                "Neither width, nor height is specified, therefore terminal size will be matched"
-            );
+                    "Neither width, nor height is specified, therefore terminal size will be matched"
+                );
             }
 
             let size;
@@ -346,10 +346,10 @@ fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
         (Some(_w), Some(_h)) => {
             if conf.verbose && is_not_gif {
                 println!(
-                "Both width and height are specified, resizing to {}x{} without preserving aspect ratio",
-                print_width,
-                print_height
-            );
+                    "Both width and height are specified, resizing to {}x{} without preserving aspect ratio",
+                    print_width,
+                    print_height
+                );
             }
             new_img = img.thumbnail_exact(print_width, print_height);
         }
@@ -413,6 +413,7 @@ mod test {
             }
         };
     }
+
     #[test]
     fn test_resize_only_width() {
         let mut conf = Config::test_config();
@@ -427,6 +428,7 @@ mod test {
             }
         };
     }
+
     #[test]
     fn test_resize_only_height() {
         let mut conf = Config::test_config();
@@ -441,6 +443,7 @@ mod test {
             }
         };
     }
+
     #[test]
     fn test_resize_given_both() {
         let mut conf = Config::test_config();
@@ -456,6 +459,7 @@ mod test {
             }
         };
     }
+
     #[test]
     fn test_view_without_extension() {
         let conf = Config::test_config();
