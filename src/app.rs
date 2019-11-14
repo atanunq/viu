@@ -67,9 +67,13 @@ pub fn run(mut conf: Config) {
         ctrlc::set_handler(move || {
             //if ctrlc is received tell the infinite gif loop to stop drawing
             // or stop the next file from being drawn
-            tx_ctrlc.send(true).unwrap();
+            tx_ctrlc
+                .send(true)
+                .expect("Could not send signal to stop drawing.");
             //a message will be received when that has happened so we can clear leftover symbols
-            let _ = rx_ctrlc.recv().unwrap();
+            let _ = rx_ctrlc
+                .recv()
+                .expect("Could not receive signal to clean up terminal.");
             print!("{}[0J", 27 as char); // clear all symbols below the cursor
             std::process::exit(0);
         })
@@ -84,11 +88,13 @@ pub fn run(mut conf: Config) {
         let mut handle = stdin.lock();
 
         let mut buf: Vec<u8> = Vec::new();
-        let _ = handle.read_to_end(&mut buf).unwrap();
+        let _ = handle
+            .read_to_end(&mut buf)
+            .expect("Could not read until EOF.");
 
         if try_print_gif(&conf, "Stdin", BufReader::new(&*buf), &tx_print, &rx_print).is_err() {
             if let Ok(img) = image::load_from_memory(&buf) {
-                resize_and_print(&conf, true, img);
+                resize_and_print(&conf, true, &img);
             } else {
                 let err = String::from("Data from stdin could not be decoded as an image.");
                 //we want to exit the program => be verbose and have no tolerance
@@ -125,25 +131,31 @@ fn view_directory(
 ) {
     match fs::read_dir(dirname) {
         Ok(iter) => {
-            for file in iter {
+            for dir_entry_result in iter {
                 //check if Ctrl-C has been received
                 if rx.try_recv().is_ok() {
-                    tx.send(true).unwrap();
+                    tx.send(true)
+                        .expect("Could not send signal to clean up terminal.");
                     break;
                 };
-                match file {
+                match dir_entry_result {
                     //check if the given file is a directory
-                    Ok(f) => match f.metadata() {
-                        Ok(m) => {
-                            if m.is_dir() {
-                                //if -r is passed, continue down
-                                if conf.recursive {
-                                    view_directory(conf, f.path().to_str().unwrap(), tx, rx);
+                    Ok(dir_entry) => match dir_entry.metadata() {
+                        Ok(metadata) => {
+                            if let Some(path_name) = dir_entry.path().to_str() {
+                                if metadata.is_dir() {
+                                    //if -r is passed, continue down
+                                    if conf.recursive {
+                                        view_directory(conf, path_name, tx, rx);
+                                    }
                                 }
-                            }
-                            //if it is a regular file, view it
-                            else {
-                                view_file(conf, f.path().to_str().unwrap(), true, tx, rx);
+                                //if it is a regular file, viu it
+                                else {
+                                    view_file(conf, path_name, true, tx, rx);
+                                }
+                            } else {
+                                eprintln!("Could not read path as valid UTF.");
+                                continue;
                             }
                         }
                         Err(e) => eprintln!("Could not fetch file metadata: {}", e),
@@ -186,7 +198,7 @@ fn view_file(
                         if conf.name {
                             println!("{}:", filename);
                         }
-                        resize_and_print(conf, true, decoded);
+                        resize_and_print(conf, true, &decoded);
                     }
                     //Could not guess format
                     Err(e) => error_and_quit(filename, e.to_string(), should_report_err, tolerant),
@@ -239,7 +251,7 @@ fn try_print_gif<R: Read>(
                         std::convert::From::from(frame.buffer.to_owned()),
                     )
                     .unwrap();
-                    let (_, height) = resize_and_print(&conf, false, ImageRgba8(buffer));
+                    let (_, height) = resize_and_print(conf, false, &ImageRgba8(buffer));
 
                     #[cfg(not(target_os = "wasi"))]
                     {
@@ -248,7 +260,8 @@ fn try_print_gif<R: Read>(
                         //if ctrlc is received then respond so the handler can clear the
                         //terminal from leftover colors
                         if rx.try_recv().is_ok() {
-                            tx.send(true).unwrap();
+                            tx.send(true)
+                                .expect("Could not send signal to clean up terminal");
                             break;
                         };
                     }
@@ -361,7 +374,7 @@ fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
     new_img
 }
 
-fn resize_and_print(conf: &Config, is_not_gif: bool, img: DynamicImage) -> (u32, u32) {
+fn resize_and_print(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> (u32, u32) {
     let new_img = resize(conf, is_not_gif, &img);
 
     printer::print(&new_img, conf.transparent);

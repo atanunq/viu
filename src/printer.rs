@@ -79,14 +79,11 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
         //because it will be only the last row which contains 1 pixel
         if is_flush {
             new_color = ColorSpec::new();
-            match c.bg() {
-                Some(bg) => {
-                    new_color.set_fg(Some(*bg));
-                    out_char = UPPER_HALF_BLOCK;
-                }
-                None => {
-                    out_char = EMPTY_BLOCK;
-                }
+            if let Some(bg) = c.bg() {
+                new_color.set_fg(Some(*bg));
+                out_char = UPPER_HALF_BLOCK;
+            } else {
+                out_char = EMPTY_BLOCK;
             }
             out_color = &new_color;
         } else {
@@ -153,7 +150,7 @@ fn get_color_from_pixel(pixel: (u32, u32, Rgba<u8>)) -> Color {
     Color::Rgb(data[0], data[1], data[2])
 }
 
-fn is_buffer_full(buffer: &[ColorSpec], width: u32) -> bool {
+const fn is_buffer_full(buffer: &[ColorSpec], width: u32) -> bool {
     buffer.len() == width as usize
 }
 
