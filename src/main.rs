@@ -1,10 +1,3 @@
-#![warn(
-    clippy::all,
-    clippy::restriction,
-    clippy::pedantic,
-    clippy::nursery,
-    clippy::cargo
-)]
 use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg};
 
 mod app;

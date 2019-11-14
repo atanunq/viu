@@ -55,6 +55,7 @@ pub fn print(img: &DynamicImage, transparent: bool) {
                 curr_row_px += 1;
                 print_buffer(&mut buffer, false);
                 mode = Status::TopRow;
+            } else {
             }
         }
     }

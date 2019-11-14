@@ -154,7 +154,7 @@ fn view_directory(
                                     view_file(conf, path_name, true, tx, rx);
                                 }
                             } else {
-                                eprintln!("Could not read path as valid UTF.");
+                                eprintln!("Could not get path name, skipping...");
                                 continue;
                             }
                         }
@@ -237,20 +237,23 @@ fn try_print_gif<R: Read>(
                 println!("{}:", filename);
             }
             let mut frames_vec = Vec::new();
-            while let Some(frame) = decoder.read_next_frame().unwrap() {
+            while let Some(frame) = decoder
+                .read_next_frame()
+                .expect("Could not decode the GIF's next frame.")
+            {
                 frames_vec.push(frame.to_owned());
             }
             let thirty_millis = Duration::from_millis(30);
             let frames_len = frames_vec.len();
             'infinite: loop {
                 for (counter, frame) in frames_vec.iter().enumerate() {
-                    //TODO: listen for user input to stop, not only Ctrl-C
+                    //TODO: listen for user input to stop(e.g 'q'), not only Ctrl-C
                     let buffer = ImageBuffer::from_raw(
                         frame.width.into(),
                         frame.height.into(),
                         std::convert::From::from(frame.buffer.to_owned()),
                     )
-                    .unwrap();
+                    .expect("Could not convert Frame to an ImageBuffer.");
                     let (_, height) = resize_and_print(conf, false, &ImageRgba8(buffer));
 
                     #[cfg(not(target_os = "wasi"))]
@@ -268,7 +271,7 @@ fn try_print_gif<R: Read>(
 
                     //keep replacing old pixels as the gif goes on so that scrollback
                     // buffer is not filled (do not do that if it is the last frame of the gif
-                    // and a couple of files are being processed
+                    // or a couple of files are being processed)
                     if counter != frames_len - 1 || conf.loop_gif {
                         //since picture height is in pixel, we divide by 2 to get the height in
                         // terminal cells
@@ -375,7 +378,7 @@ fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
 }
 
 fn resize_and_print(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> (u32, u32) {
-    let new_img = resize(conf, is_not_gif, &img);
+    let new_img = resize(conf, is_not_gif, img);
 
     printer::print(&new_img, conf.transparent);
 
