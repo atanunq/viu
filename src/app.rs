@@ -81,9 +81,9 @@ pub fn run(mut conf: Config) {
     }
 
     //TODO: handle multiple files
-    //TODO: maybe check an argument instead
-    let no_files_passed = conf.files.is_empty();
-    if no_files_passed {
+    //read stdin if only 1 parameter is passed and it is "-"
+    let should_read_stdin = conf.files.len() == 1 && conf.files[0] == "-";
+    if should_read_stdin {
         let stdin = io::stdin();
         let mut handle = stdin.lock();
 
