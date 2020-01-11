@@ -1,3 +1,4 @@
+use clap::AppSettings::ArgRequiredElseHelp;
 use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg};
 
 mod app;
@@ -8,6 +9,11 @@ fn main() {
         .version(crate_version!())
         .author(crate_authors!())
         .about(crate_description!())
+        .setting(ArgRequiredElseHelp)
+        .usage(
+            "viu [FLAGS] [OPTIONS] [FILE]...
+    When FILE is -, read standard input.",
+        )
         .arg(
             Arg::with_name("FILE")
                 .help("The image to be displayed")

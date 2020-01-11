@@ -91,17 +91,18 @@ Examples:
 - `viu ~/Pictures -rn`
 
 
-The shell will expand the wildcard above and *viu* will display all the images in the folder one after the other. For a more informative output when dealing with folders the flag **-n** could be used.
+The shell will expand the wildcard above and `viu` will display all the images in the folder one after the other. For a more informative output when dealing with folders the flag **-n** could be used.
 
 When `viu` receives only one file and it is GIF, it will be displayed over and over until Ctrl-C is pressed. However, when couple of files are up for display (second example) the GIF will be displayed only once.
 
 ##### Aspect Ratio
-If no flags are supplied to *viu* it will try to get the size of the terminal where it was invoked. If it succeeds it will fit the image and preserve the aspect ratio. The aspect ratio will be changed only if both options **-w** and **-h** are used together.
+If no flags are supplied to `viu` it will try to get the size of the terminal where it was invoked. If it succeeds it will fit the image and preserve the aspect ratio. The aspect ratio will be changed only if both options **-w** and **-h** are used together.
 
 ##### Command line options
 ```
 USAGE:
     viu [FLAGS] [OPTIONS] [FILE]...
+    When FILE is -, read standard input.
 
 FLAGS:
     -m, --mirror         Display a mirror of the original image
