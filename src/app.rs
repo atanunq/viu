@@ -2,7 +2,10 @@ use crate::printer;
 use clap::{value_t, ArgMatches};
 use crossterm::terminal;
 use gif::SetParameter;
-use image::{DynamicImage, GenericImageView, ImageBuffer, ImageRgba8};
+use image::{
+    DynamicImage::{self, ImageRgba8},
+    GenericImageView, ImageBuffer,
+};
 use std::fs;
 use std::io::{self, BufReader, Read};
 use std::sync::mpsc;
