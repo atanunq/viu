@@ -11,6 +11,8 @@ use std::io::{self, BufReader, Read};
 use std::sync::mpsc;
 use std::{thread, time::Duration};
 
+use crate::term::truecolor_available;
+
 pub struct Config<'a> {
     files: Vec<&'a str>,
     loop_gif: bool,
@@ -21,6 +23,7 @@ pub struct Config<'a> {
     recursive: bool,
     width: Option<u32>,
     height: Option<u32>,
+    truecolor: bool,
 }
 
 impl<'a> Config<'a> {
@@ -43,6 +46,7 @@ impl<'a> Config<'a> {
 
         let once = matches.is_present("once");
         let loop_gif = files.len() <= 1 && !once;
+        let truecolor = truecolor_available();
 
         Config {
             files,
@@ -54,6 +58,7 @@ impl<'a> Config<'a> {
             recursive: matches.is_present("recursive"),
             width,
             height,
+            truecolor,
         }
     }
 }
@@ -383,7 +388,7 @@ fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
 fn resize_and_print(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> (u32, u32) {
     let new_img = resize(conf, is_not_gif, img);
 
-    printer::print(&new_img, conf.transparent);
+    printer::print(&new_img, conf.transparent, conf.truecolor);
 
     let (print_width, print_height) = new_img.dimensions();
     let (width, height) = img.dimensions();
@@ -415,6 +420,7 @@ mod test {
                 recursive: false,
                 width: None,
                 height: None,
+                truecolor: true,
             }
         }
     }

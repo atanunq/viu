@@ -3,6 +3,7 @@ use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg
 
 mod app;
 mod printer;
+mod term;
 
 fn main() {
     let matches = App::new(crate_name!())
