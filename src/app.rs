@@ -1,5 +1,5 @@
+use crate::config::Config;
 use crate::printer;
-use clap::{value_t, ArgMatches};
 use crossterm::terminal;
 use gif::SetParameter;
 use image::{
@@ -10,58 +10,6 @@ use std::fs;
 use std::io::{self, BufReader, Read};
 use std::sync::mpsc;
 use std::{thread, time::Duration};
-
-use crate::term::truecolor_available;
-
-pub struct Config<'a> {
-    files: Vec<&'a str>,
-    loop_gif: bool,
-    verbose: bool,
-    name: bool,
-    mirror: bool,
-    transparent: bool,
-    recursive: bool,
-    width: Option<u32>,
-    height: Option<u32>,
-    truecolor: bool,
-}
-
-impl<'a> Config<'a> {
-    pub fn new(matches: &'a ArgMatches) -> Config<'a> {
-        let width = if matches.is_present("width") {
-            Some(value_t!(matches, "width", u32).unwrap_or_else(|e| e.exit()))
-        } else {
-            None
-        };
-        let height = if matches.is_present("height") {
-            Some(value_t!(matches, "height", u32).unwrap_or_else(|e| e.exit()))
-        } else {
-            None
-        };
-
-        let files = match matches.values_of("FILE") {
-            None => Vec::new(),
-            Some(values) => values.collect(),
-        };
-
-        let once = matches.is_present("once");
-        let loop_gif = files.len() <= 1 && !once;
-        let truecolor = truecolor_available();
-
-        Config {
-            files,
-            loop_gif,
-            verbose: matches.is_present("verbose"),
-            name: matches.is_present("name"),
-            mirror: matches.is_present("mirror"),
-            transparent: matches.is_present("transparent"),
-            recursive: matches.is_present("recursive"),
-            width,
-            height,
-            truecolor,
-        }
-    }
-}
 
 pub fn run(mut conf: Config) {
     //create two channels so that ctrlc-handler and the main thread can pass messages in order to
@@ -407,23 +355,6 @@ mod test {
     use crate::app::{resize, view_file, Config};
     use image::GenericImageView;
     use std::sync::mpsc;
-
-    impl<'a> Config<'a> {
-        fn test_config() -> Config<'a> {
-            Config {
-                files: vec![],
-                loop_gif: true,
-                verbose: false,
-                name: false,
-                mirror: false,
-                transparent: false,
-                recursive: false,
-                width: None,
-                height: None,
-                truecolor: true,
-            }
-        }
-    }
 
     #[test]
     fn test_resize_with_none() {

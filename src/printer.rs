@@ -212,6 +212,13 @@ mod test {
     }
 
     #[test]
+    fn test_ansi_color_from_pixel() {
+        let color = get_color_from_pixel((0, 0, image::Rgba([100, 100, 100, 255])), false);
+        let expected_color = Color::Ansi256(241);
+        assert_eq!(color, expected_color)
+    }
+
+    #[test]
     fn test_buffer_full() {
         let buffer = vec![ColorSpec::new(), ColorSpec::new()];
         let width = 2;
@@ -230,6 +237,14 @@ mod test {
         let x1y1 = get_transparency_color(1, 1, true);
         let x2y2 = get_transparency_color(2, 2, true);
         let x3y2 = get_transparency_color(3, 2, true);
+        assert_eq!(x1y1, x2y2);
+        assert_ne!(x2y2, x3y2);
+    }
+    #[test]
+    fn test_get_ansi_transparency_color() {
+        let x1y1 = get_transparency_color(1, 1, false);
+        let x2y2 = get_transparency_color(2, 2, false);
+        let x3y2 = get_transparency_color(3, 2, false);
         assert_eq!(x1y1, x2y2);
         assert_ne!(x2y2, x3y2);
     }

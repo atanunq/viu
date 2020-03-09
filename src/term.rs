@@ -8,3 +8,16 @@ pub fn truecolor_available() -> bool {
     }
     false
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_truecolor() {
+        env::set_var("COLORTERM", "truecolor");
+        assert!(truecolor_available());
+        env::set_var("COLORTERM", "");
+        assert!(!truecolor_available());
+    }
+}
