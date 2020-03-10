@@ -256,7 +256,7 @@ fn error_and_quit(filename: &str, e: String, verbose: bool, tolerant: bool) {
 fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
     let mut new_img;
     let (width, height) = img.dimensions();
-    let (mut print_width, mut print_height) = img.dimensions();
+    let (mut print_width, mut print_height) = (width, height);
 
     if let Some(w) = conf.width {
         print_width = w;
