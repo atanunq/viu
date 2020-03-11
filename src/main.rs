@@ -2,7 +2,11 @@ use clap::AppSettings::ArgRequiredElseHelp;
 use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg};
 
 mod app;
+mod config;
 mod printer;
+mod term;
+
+use config::Config;
 
 fn main() {
     let matches = App::new(crate_name!())
@@ -71,6 +75,6 @@ fn main() {
         )
         .get_matches();
 
-    let conf = app::Config::new(&matches);
+    let conf = Config::new(&matches);
     app::run(conf);
 }

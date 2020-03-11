@@ -1,3 +1,4 @@
+use ansi_colours::ansi256_from_rgb;
 use image::{DynamicImage, GenericImageView, Rgba};
 use std::io::Write;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
@@ -6,7 +7,7 @@ const UPPER_HALF_BLOCK: &str = "\u{2580}";
 const LOWER_HALF_BLOCK: &str = "\u{2584}";
 const EMPTY_BLOCK: &str = " ";
 
-pub fn print(img: &DynamicImage, transparent: bool) {
+pub fn print(img: &DynamicImage, transparent: bool, truecolor: bool) {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
 
     let (width, _) = img.dimensions();
@@ -14,7 +15,7 @@ pub fn print(img: &DynamicImage, transparent: bool) {
     let mut curr_col_px = 0;
     let mut curr_row_px = 0;
     let mut buffer: Vec<ColorSpec> = Vec::with_capacity(width as usize);
-    let mut mode: Status = Status::TopRow;
+    let mut mode = Status::TopRow;
 
     //iterate pixels and fill a buffer that contains 2 rows of pixels
     //2 rows translate to 1 row in the terminal by using half block, foreground and background
@@ -27,10 +28,10 @@ pub fn print(img: &DynamicImage, transparent: bool) {
             if transparent {
                 None
             } else {
-                Some(get_transparency_color(curr_row_px, curr_col_px))
+                Some(get_transparency_color(curr_row_px, curr_col_px, truecolor))
             }
         } else {
-            Some(get_color_from_pixel(pixel))
+            Some(get_color_from_pixel(pixel, truecolor))
         };
 
         if mode == Status::TopRow {
@@ -137,18 +138,28 @@ fn is_pixel_transparent(pixel: (u32, u32, Rgba<u8>)) -> bool {
 //TODO: some gifs do not specify every pixel in every frame (they reuse old pixels)
 // experimenting is required to see how gifs like
 // https://media.giphy.com/media/13gvXfEVlxQjDO/giphy.gif behave
-fn get_transparency_color(row: u32, col: u32) -> Color {
+fn get_transparency_color(row: u32, col: u32, truecolor: bool) -> Color {
     //imitate the transparent chess board pattern
-    if row % 2 == col % 2 {
-        Color::Rgb(102, 102, 102)
+    let rgb = if row % 2 == col % 2 {
+        (102, 102, 102)
     } else {
-        Color::Rgb(153, 153, 153)
+        (153, 153, 153)
+    };
+    if truecolor {
+        Color::Rgb(rgb.0, rgb.1, rgb.2)
+    } else {
+        Color::Ansi256(ansi256_from_rgb(rgb))
     }
 }
 
-fn get_color_from_pixel(pixel: (u32, u32, Rgba<u8>)) -> Color {
+fn get_color_from_pixel(pixel: (u32, u32, Rgba<u8>), truecolor: bool) -> Color {
     let (_x, _y, data) = pixel;
-    Color::Rgb(data[0], data[1], data[2])
+    let rgb = (data[0], data[1], data[2]);
+    if truecolor {
+        Color::Rgb(rgb.0, rgb.1, rgb.2)
+    } else {
+        Color::Ansi256(ansi256_from_rgb(rgb))
+    }
 }
 
 const fn is_buffer_full(buffer: &[ColorSpec], width: u32) -> bool {
@@ -195,8 +206,15 @@ mod test {
 
     #[test]
     fn test_color_from_pixel() {
-        let color = get_color_from_pixel((0, 0, image::Rgba([100, 100, 100, 255])));
+        let color = get_color_from_pixel((0, 0, image::Rgba([100, 100, 100, 255])), true);
         let expected_color = Color::Rgb(100, 100, 100);
+        assert_eq!(color, expected_color)
+    }
+
+    #[test]
+    fn test_ansi_color_from_pixel() {
+        let color = get_color_from_pixel((0, 0, image::Rgba([100, 100, 100, 255])), false);
+        let expected_color = Color::Ansi256(241);
         assert_eq!(color, expected_color)
     }
 
@@ -216,9 +234,17 @@ mod test {
 
     #[test]
     fn test_get_transparency_color() {
-        let x1y1 = get_transparency_color(1, 1);
-        let x2y2 = get_transparency_color(2, 2);
-        let x3y2 = get_transparency_color(3, 2);
+        let x1y1 = get_transparency_color(1, 1, true);
+        let x2y2 = get_transparency_color(2, 2, true);
+        let x3y2 = get_transparency_color(3, 2, true);
+        assert_eq!(x1y1, x2y2);
+        assert_ne!(x2y2, x3y2);
+    }
+    #[test]
+    fn test_get_ansi_transparency_color() {
+        let x1y1 = get_transparency_color(1, 1, false);
+        let x2y2 = get_transparency_color(2, 2, false);
+        let x3y2 = get_transparency_color(3, 2, false);
         assert_eq!(x1y1, x2y2);
         assert_ne!(x2y2, x3y2);
     }
