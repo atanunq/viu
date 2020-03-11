@@ -16,7 +16,8 @@ libc = "0.2"
 clap = "2.33.0"
 termcolor = "1.1"
 gif = "0.10.3"
-crossterm = { version= "0.15" }
+#TODO: Update when 0.16.1 is released
+crossterm = "0.15"
 ansi_colours = "1.0"
 
 [target.'cfg(target_os = "wasi")'.dependencies]

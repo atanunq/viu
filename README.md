@@ -1,21 +1,28 @@
 # viu
 
 ### Description
-A small command-line application to view images from the terminal written in Rust.
-It uses lower half blocks (▄ or \u2584) to fit 2 pixels into a single cell by adjusting foreground and background colours accordingly.
+A small command-line application to view images from the terminal written in Rust. It uses lower
+half blocks (▄ or \u2584) to fit 2 pixels into a single cell by adjusting foreground and background
+colours accordingly.
+
+When run, `viu` will check the value of `$COLORTERM`. If it contains either `truecolor` or `24bit`,
+truecolor (16 million colors) will be used. If not, it will fallback to using only ansi256. A nice
+explanation can be found in this [gist](https://gist.github.com/XVilka/8346728).
 
 
 Features (see [Usage](#usage)):
 - Animated GIF support
 - Accept media through stdin
 - Custom dimensions
+- Transparency
 
 ### Installation
 
 #### From source
 
 ##### Standard
-Installation from source requires a local [Rust environment](https://www.rust-lang.org/tools/install).
+Installation from source requires a local [Rust
+environment](https://www.rust-lang.org/tools/install).
 
 ```bash
 git clone https://github.com/atanunq/viu.git
@@ -56,7 +63,8 @@ wasmer run  target/wasm32-wasi/release/viu.wasm --dir=. -- img/giphy.gif
 ```
 
 #### Binary
-A precompiled binary can be downloaded from the [release page](https://www.github.com/atanunq/viu/releases/latest).
+A precompiled binary can be downloaded from the [release
+page](https://www.github.com/atanunq/viu/releases/latest).
 
 #### From wapm
 
@@ -91,12 +99,18 @@ Examples:
 - `viu ~/Pictures -rn`
 
 
-The shell will expand the wildcard above and `viu` will display all the images in the folder one after the other. For a more informative output when dealing with folders the flag **-n** could be used.
+The shell will expand the wildcard above and `viu` will display all the images in the folder one
+after the other. For a more informative output when dealing with folders the flag **-n** could be
+used.
 
-When `viu` receives only one file and it is GIF, it will be displayed over and over until Ctrl-C is pressed. However, when couple of files are up for display (second example) the GIF will be displayed only once.
+When `viu` receives only one file and it is GIF, it will be displayed over and over until Ctrl-C is
+pressed. However, when couple of files are up for display (second example) the GIF will be displayed
+only once.
 
 ##### Aspect Ratio
-If no flags are supplied to `viu` it will try to get the size of the terminal where it was invoked. If it succeeds it will fit the image and preserve the aspect ratio. The aspect ratio will be changed only if both options **-w** and **-h** are used together.
+If no flags are supplied to `viu` it will try to get the size of the terminal where it was invoked.
+If it succeeds it will fit the image and preserve the aspect ratio. The aspect ratio will be changed
+only if both options **-w** and **-h** are used together.
 
 ##### Command line options
 ```
