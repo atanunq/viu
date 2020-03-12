@@ -18,7 +18,7 @@ Features (see [Usage](#usage)):
 
 ### Installation
 
-#### From source
+#### From source (recommended)
 
 ##### Standard
 Installation from source requires a local [Rust

@@ -1,13 +1,14 @@
 use crate::config::Config;
 use crate::printer;
-use crossterm::terminal;
+use crossterm::terminal::{self, Clear, ClearType};
+use crossterm::{cursor, execute};
 use gif::SetParameter;
 use image::{
     DynamicImage::{self, ImageRgba8},
     GenericImageView, ImageBuffer,
 };
 use std::fs;
-use std::io::{self, BufReader, Read};
+use std::io::{stdin, stdout, BufReader, Read, Write};
 use std::sync::mpsc;
 use std::{thread, time::Duration};
 
@@ -30,7 +31,8 @@ pub fn run(mut conf: Config) {
             let _ = rx_ctrlc
                 .recv()
                 .expect("Could not receive signal to clean up terminal.");
-            print!("{}[0J", 27 as char); // clear all symbols below the cursor
+
+            execute!(stdout(), Clear(ClearType::FromCursorDown)).unwrap();
             std::process::exit(0);
         })
         .expect("Could not setup Ctrl-C handler");
@@ -40,7 +42,7 @@ pub fn run(mut conf: Config) {
     //read stdin if only 1 parameter is passed and it is "-"
     let should_read_stdin = conf.files.len() == 1 && conf.files[0] == "-";
     if should_read_stdin {
-        let stdin = io::stdin();
+        let stdin = stdin();
         let mut handle = stdin.lock();
 
         let mut buf: Vec<u8> = Vec::new();
@@ -67,10 +69,13 @@ fn view_passed_files(conf: &mut Config, tx: &mpsc::Sender<bool>, rx: &mpsc::Rece
     for filename in &conf.files {
         match fs::metadata(filename) {
             Ok(m) => {
+                //if its a directory, stop gif looping because there will probably be more files
                 if m.is_dir() {
                     conf.loop_gif = false;
                     view_directory(conf, filename, tx, rx);
-                } else {
+                }
+                //if a file has been passed individually and fails, do so intolerantly
+                else {
                     view_file(conf, filename, false, tx, rx);
                 }
             }
@@ -105,7 +110,7 @@ fn view_directory(
                                         view_directory(conf, path_name, tx, rx);
                                     }
                                 }
-                                //if it is a regular file, viu it
+                                //if it is a regular file, viu it with tolerance = true
                                 else {
                                     view_file(conf, path_name, true, tx, rx);
                                 }
@@ -231,7 +236,8 @@ fn try_print_gif<R: Read>(
                     if counter != frames_len - 1 || conf.loop_gif {
                         //since picture height is in pixel, we divide by 2 to get the height in
                         // terminal cells
-                        print!("{}[{}A", 27 as char, height / 2 + height % 2);
+                        let up_lines = (height / 2 + height % 2) as u16;
+                        execute!(stdout(), cursor::MoveUp(up_lines)).unwrap();
                     }
                 }
                 if !conf.loop_gif {
@@ -352,9 +358,7 @@ fn resize_and_print(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> (u32
 
 #[cfg(test)]
 mod test {
-    use crate::app::{resize, view_file, Config};
-    use image::GenericImageView;
-    use std::sync::mpsc;
+    use super::*;
 
     #[test]
     fn test_resize_with_none() {
