@@ -57,6 +57,7 @@ pub fn print(img: &DynamicImage, transparent: bool, truecolor: bool) {
                 print_buffer(&mut buffer, false);
                 mode = Status::TopRow;
             } else {
+                //the buffer is full, but the second row has not been fully traversed
             }
         }
     }
@@ -114,7 +115,7 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
                         out_char = UPPER_HALF_BLOCK;
                     }
                     Some(_bottom) => {
-                        // normal
+                        // both parts have a color
                         out_color = c;
                         out_char = LOWER_HALF_BLOCK;
                     }
@@ -199,10 +200,7 @@ enum Status {
 
 #[cfg(test)]
 mod test {
-    use crate::printer::{
-        get_color_from_pixel, get_transparency_color, is_buffer_full, print_buffer,
-    };
-    use termcolor::{Color, ColorSpec};
+    use super::*;
 
     #[test]
     fn test_color_from_pixel() {
