@@ -22,7 +22,7 @@ Features (see [Usage](#usage)):
 
 ##### Standard
 Installation from source requires a local [Rust
-environment](https://www.rust-lang.org/tools/install).
+environment](https://www.rust-lang.org/tools/install). Please note that at least Rust 1.39 is required.
 
 ```bash
 git clone https://github.com/atanunq/viu.git
