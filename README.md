@@ -123,6 +123,7 @@ FLAGS:
     -n, --name           Output the name of the file before displaying
     -1, --once           Only loop once through the animation
     -r, --recursive      Recurse down directories if passed one
+    -s, --static         Show only first frame of gif
     -t, --transparent    Display transparent image with transparent background
     -v, --verbose        Output what is going on
 
