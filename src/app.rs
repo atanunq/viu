@@ -217,6 +217,10 @@ fn try_print_gif<R: Read>(
                     .expect("Could not convert Frame to an ImageBuffer.");
                     let (_, height) = resize_and_print(conf, false, &ImageRgba8(buffer));
 
+                    if conf.static_gif {
+                        break 'infinite;
+                    }
+
                     #[cfg(not(target_os = "wasi"))]
                     {
                         thread::sleep(thirty_millis);
