@@ -54,6 +54,12 @@ fn main() {
                 .help("Only loop once through the animation"),
         )
         .arg(
+            Arg::with_name("static")
+                .short("s")
+                .long("static")
+                .help("Show only first frame of gif"),
+        )
+        .arg(
             Arg::with_name("width")
                 .short("w")
                 .long("width")

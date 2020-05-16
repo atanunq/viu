@@ -12,6 +12,7 @@ pub struct Config<'a> {
     pub width: Option<u32>,
     pub height: Option<u32>,
     pub truecolor: bool,
+    pub static_gif: bool,
 }
 
 impl<'a> Config<'a> {
@@ -33,6 +34,7 @@ impl<'a> Config<'a> {
         };
 
         let once = matches.is_present("once");
+        let static_gif = matches.is_present("static");
         let loop_gif = files.len() <= 1 && !once;
         let truecolor = truecolor_available();
 
@@ -47,6 +49,7 @@ impl<'a> Config<'a> {
             width,
             height,
             truecolor,
+            static_gif,
         }
     }
     #[cfg(test)]
@@ -62,6 +65,7 @@ impl<'a> Config<'a> {
             width: None,
             height: None,
             truecolor: true,
+            static_gif: false,
         }
     }
 }
