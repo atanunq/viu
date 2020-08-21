@@ -90,36 +90,32 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
             }
             out_color = &new_color;
         } else {
-            match c.bg() {
-                None => match c.fg() {
-                    None => {
-                        // completely transparent
-                        new_color = ColorSpec::new();
-                        out_color = &new_color;
-                        out_char = EMPTY_BLOCK;
-                    }
-                    Some(bottom) => {
-                        // only top transparent
-                        new_color = ColorSpec::new();
-                        new_color.set_fg(Some(*bottom));
-                        out_color = &new_color;
-                        out_char = LOWER_HALF_BLOCK;
-                    }
-                },
-                Some(top) => match c.fg() {
-                    None => {
-                        // only bottom transparent
-                        new_color = ColorSpec::new();
-                        new_color.set_fg(Some(*top));
-                        out_color = &new_color;
-                        out_char = UPPER_HALF_BLOCK;
-                    }
-                    Some(_bottom) => {
-                        // both parts have a color
-                        out_color = c;
-                        out_char = LOWER_HALF_BLOCK;
-                    }
-                },
+            match (c.fg(), c.bg()) {
+                (None, None) => {
+                    // completely transparent
+                    new_color = ColorSpec::new();
+                    out_color = &new_color;
+                    out_char = EMPTY_BLOCK;
+                }
+                (Some(bottom), None) => {
+                    // only top transparent
+                    new_color = ColorSpec::new();
+                    new_color.set_fg(Some(*bottom));
+                    out_color = &new_color;
+                    out_char = LOWER_HALF_BLOCK;
+                }
+                (None, Some(top)) => {
+                    // only bottom transparent
+                    new_color = ColorSpec::new();
+                    new_color.set_fg(Some(*top));
+                    out_color = &new_color;
+                    out_char = UPPER_HALF_BLOCK;
+                }
+                (Some(_top), Some(_bottom)) => {
+                    // both parts have a color
+                    out_color = c;
+                    out_char = LOWER_HALF_BLOCK;
+                }
             }
         }
         change_stdout_color(&mut stdout, out_color);
