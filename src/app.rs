@@ -2,15 +2,13 @@ use crate::config::Config;
 use crate::printer;
 use crossterm::terminal::{self, Clear, ClearType};
 use crossterm::{cursor, execute};
-use gif::SetParameter;
-use image::{
-    DynamicImage::{self, ImageRgba8},
-    GenericImageView, ImageBuffer,
-};
+use image::{gif::GifDecoder, AnimationDecoder, DynamicImage, GenericImageView};
 use std::fs;
 use std::io::{stdin, stdout, BufReader, Read, Write};
 use std::sync::mpsc;
 use std::{thread, time::Duration};
+
+const THIRTY_MILLIS: Duration = Duration::from_millis(30);
 
 pub fn run(mut conf: Config) {
     //create two channels so that ctrlc-handler and the main thread can pass messages in order to
@@ -50,7 +48,7 @@ pub fn run(mut conf: Config) {
             .read_to_end(&mut buf)
             .expect("Could not read until EOF.");
 
-        if try_print_gif(&conf, "Stdin", BufReader::new(&*buf), &tx_print, &rx_print).is_err() {
+        if try_print_gif(&conf, BufReader::new(&*buf), &tx_print, &rx_print).is_err() {
             if let Ok(img) = image::load_from_memory(&buf) {
                 resize_and_print(&conf, true, &img);
             } else {
@@ -139,6 +137,9 @@ fn view_file(
     tx: &mpsc::Sender<bool>,
     rx: &mpsc::Receiver<bool>,
 ) {
+    if conf.name {
+        println!("{}:", filename);
+    }
     let file_in = match fs::File::open(filename) {
         Err(e) => {
             eprintln!("{}", e);
@@ -150,15 +151,12 @@ fn view_file(
     //errors should be reported if -v is passed or if we do not tolerate them
     let should_report_err = conf.verbose || !tolerant;
 
-    if try_print_gif(conf, filename, BufReader::new(file_in), tx, rx).is_err() {
+    if try_print_gif(conf, BufReader::new(file_in), tx, rx).is_err() {
         //the provided image is not a gif so try to view it
         match image::io::Reader::open(filename) {
             Ok(i) => match i.with_guessed_format() {
                 Ok(img) => match img.decode() {
                     Ok(decoded) => {
-                        if conf.name {
-                            println!("{}:", filename);
-                        }
                         resize_and_print(conf, true, &decoded);
                     }
                     //Could not guess format
@@ -184,74 +182,56 @@ fn view_file(
 
 fn try_print_gif<R: Read>(
     conf: &Config,
-    filename: &str,
     input_stream: R,
     tx: &mpsc::Sender<bool>,
     rx: &mpsc::Receiver<bool>,
-) -> Result<(), gif::DecodingError> {
-    let mut decoder = gif::Decoder::new(input_stream);
-    decoder.set(gif::ColorOutput::RGBA);
-    match decoder.read_info() {
-        //if it is a legit gif read the frames and start printing them
-        Ok(mut decoder) => {
-            if conf.name {
-                println!("{}:", filename);
+) -> Result<(), image::ImageError> {
+    let decoder = GifDecoder::new(input_stream)?;
+    //if it is a legit gif read the frames and start printing them
+    let frames = decoder.into_frames().collect_frames()?;
+
+    'infinite: loop {
+        let mut iter = frames.iter().peekable();
+        while let Some(frame) = iter.next() {
+            let (_, height) = resize_and_print(
+                conf,
+                false,
+                &DynamicImage::ImageRgba8(frame.buffer().to_owned()),
+            );
+
+            if conf.static_gif {
+                break 'infinite;
             }
-            let mut frames_vec = Vec::new();
-            while let Some(frame) = decoder
-                .read_next_frame()
-                .expect("Could not decode the GIF's next frame.")
+
+            #[cfg(not(target_os = "wasi"))]
             {
-                frames_vec.push(frame.to_owned());
+                thread::sleep(THIRTY_MILLIS);
+
+                //TODO: listen for user input to stop(e.g 'q'), not only Ctrl-C
+                //if ctrlc is received then respond so the handler can clear the
+                //terminal from leftover colors
+                if rx.try_recv().is_ok() {
+                    tx.send(true)
+                        .expect("Could not send signal to clean up terminal");
+                    break;
+                };
             }
-            let thirty_millis = Duration::from_millis(30);
-            let frames_len = frames_vec.len();
-            'infinite: loop {
-                for (counter, frame) in frames_vec.iter().enumerate() {
-                    //TODO: listen for user input to stop(e.g 'q'), not only Ctrl-C
-                    let buffer = ImageBuffer::from_raw(
-                        frame.width.into(),
-                        frame.height.into(),
-                        std::convert::From::from(frame.buffer.to_owned()),
-                    )
-                    .expect("Could not convert Frame to an ImageBuffer.");
-                    let (_, height) = resize_and_print(conf, false, &ImageRgba8(buffer));
 
-                    if conf.static_gif {
-                        break 'infinite;
-                    }
-
-                    #[cfg(not(target_os = "wasi"))]
-                    {
-                        thread::sleep(thirty_millis);
-
-                        //if ctrlc is received then respond so the handler can clear the
-                        //terminal from leftover colors
-                        if rx.try_recv().is_ok() {
-                            tx.send(true)
-                                .expect("Could not send signal to clean up terminal");
-                            break;
-                        };
-                    }
-
-                    //keep replacing old pixels as the gif goes on so that scrollback
-                    // buffer is not filled (do not do that if it is the last frame of the gif
-                    // or a couple of files are being processed)
-                    if counter != frames_len - 1 || conf.loop_gif {
-                        //since picture height is in pixel, we divide by 2 to get the height in
-                        // terminal cells
-                        let up_lines = (height / 2 + height % 2) as u16;
-                        execute!(stdout(), cursor::MoveUp(up_lines)).unwrap();
-                    }
-                }
-                if !conf.loop_gif {
-                    break 'infinite;
-                }
+            //keep replacing old pixels as the gif goes on so that scrollback
+            // buffer is not filled (do not do that if it is the last frame of the gif
+            // or a couple of files are being processed)
+            if iter.peek().is_some() || conf.loop_gif {
+                //since picture height is in pixel, we divide by 2 to get the height in
+                // terminal cells
+                let up_lines = (height / 2 + height % 2) as u16;
+                execute!(stdout(), cursor::MoveUp(up_lines)).unwrap();
             }
-            Ok(())
         }
-        Err(e) => Err(e),
+        if !conf.loop_gif {
+            break 'infinite;
+        }
     }
+    Ok(())
 }
 
 fn error_and_quit(filename: &str, e: String, verbose: bool, tolerant: bool) {
@@ -357,7 +337,7 @@ fn resize_and_print(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> (u32
         );
     }
 
-    new_img.dimensions()
+    (print_width, print_height)
 }
 
 #[cfg(test)]
