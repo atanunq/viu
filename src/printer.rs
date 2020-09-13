@@ -1,14 +1,21 @@
 use ansi_colours::ansi256_from_rgb;
 use image::{DynamicImage, GenericImageView, Rgba};
 use std::io::Write;
-use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
+use termcolor::{Buffer, BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
 const UPPER_HALF_BLOCK: &str = "\u{2580}";
 const LOWER_HALF_BLOCK: &str = "\u{2584}";
 const EMPTY_BLOCK: &str = " ";
 
 pub fn print(img: &DynamicImage, transparent: bool, truecolor: bool) {
-    let mut stdout = StandardStream::stdout(ColorChoice::Always);
+    //there are two types of buffers in this function:
+    // - stdout: Buffer, which is from termcolor crate. Used to buffer all writing
+    //   required to print a single image or frame. Flushed once at the end of the function
+    // - buffer: Vec<ColorSpec>, which stores back- and foreground colors for a
+    //   maximum of 1 row of blocks, i.e 2 rows of pixels. Flushed every 2 pixel rows of the images
+    // all mentions of buffer below refer to the latter
+    let out = BufferWriter::stdout(ColorChoice::Always);
+    let mut stdout = out.buffer();
 
     let (width, _) = img.dimensions();
 
@@ -42,9 +49,10 @@ pub fn print(img: &DynamicImage, transparent: bool, truecolor: bool) {
             let colorspec_to_upg = &mut buffer[curr_col_px as usize];
             colorspec_to_upg.set_fg(color);
         }
+
         curr_col_px += 1;
         //if the buffer is full start adding the second row of pixels
-        if is_buffer_full(&buffer, width) {
+        if buffer.len() == width as usize {
             if mode == Status::TopRow {
                 mode = Status::BottomRow;
                 curr_col_px = 0;
@@ -54,25 +62,24 @@ pub fn print(img: &DynamicImage, transparent: bool, truecolor: bool) {
             else if curr_col_px == width {
                 curr_col_px = 0;
                 curr_row_px += 1;
-                print_buffer(&mut buffer, false);
+                print_buffer(&mut buffer, false, &mut stdout);
                 mode = Status::TopRow;
             } else {
-                //the buffer is full, but the second row has not been fully traversed
+                //we are in the middle of the second row, there is work to do
             }
         }
     }
 
     //buffer will be flushed if the image has an odd height
     if !buffer.is_empty() {
-        print_buffer(&mut buffer, true);
+        print_buffer(&mut buffer, true, &mut stdout);
     }
 
     clear_printer(&mut stdout);
+    out.print(&stdout).expect("Could not flush image buffer");
 }
 
-fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
-    let mut stdout = StandardStream::stdout(ColorChoice::Always);
-
+fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool, stdout: &mut Buffer) {
     let mut out_color;
     let mut out_char;
     let mut new_color;
@@ -118,12 +125,12 @@ fn print_buffer(buff: &mut Vec<ColorSpec>, is_flush: bool) {
                 }
             }
         }
-        change_stdout_color(&mut stdout, out_color);
+        change_stdout_color(stdout, out_color);
         write!(stdout, "{}", out_char).unwrap_or_else(|_| handle_broken_pipe());
     }
 
-    clear_printer(&mut stdout);
-    write_newline(&mut stdout);
+    clear_printer(stdout);
+    write_newline(stdout);
     buff.clear();
 }
 
@@ -156,22 +163,18 @@ fn get_color_from_pixel(pixel: (u32, u32, Rgba<u8>), truecolor: bool) -> Color {
     }
 }
 
-const fn is_buffer_full(buffer: &[ColorSpec], width: u32) -> bool {
-    buffer.len() == width as usize
-}
-
-fn clear_printer(stdout: &mut StandardStream) {
+fn clear_printer(stdout: &mut Buffer) {
     let c = ColorSpec::new();
     change_stdout_color(stdout, &c);
 }
 
-fn change_stdout_color(stdout: &mut StandardStream, color: &ColorSpec) {
+fn change_stdout_color(stdout: &mut Buffer, color: &ColorSpec) {
     stdout
         .set_color(color)
         .unwrap_or_else(|_| handle_broken_pipe());
 }
 
-fn write_newline(stdout: &mut StandardStream) {
+fn write_newline(stdout: &mut Buffer) {
     writeln!(stdout).unwrap_or_else(|_| handle_broken_pipe());
 }
 
@@ -210,16 +213,10 @@ mod test {
     }
 
     #[test]
-    fn test_buffer_full() {
-        let buffer = vec![ColorSpec::new(), ColorSpec::new()];
-        let width = 2;
-        assert!(is_buffer_full(&buffer, width));
-    }
-
-    #[test]
     fn test_print_buffer() {
         let mut buffer = vec![ColorSpec::new(), ColorSpec::new()];
-        print_buffer(&mut buffer, false);
+        let mut stdout = BufferWriter::stdout(ColorChoice::Always).buffer();
+        print_buffer(&mut buffer, false, &mut stdout);
         assert_eq!(buffer.len(), 0);
     }
 
