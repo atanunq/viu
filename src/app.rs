@@ -198,7 +198,6 @@ fn try_print_gif<R: Read>(
     'infinite: loop {
         let mut iter = resized_frames.iter().peekable();
         while let Some(frame) = iter.next() {
-            let height = frame.height();
             printer::print(&frame, conf.transparent, conf.truecolor);
 
             if conf.static_gif {
@@ -224,6 +223,7 @@ fn try_print_gif<R: Read>(
             if iter.peek().is_some() || conf.loop_gif {
                 //since picture height is in pixel, we divide by 2 to get the height in
                 // terminal cells
+                let height = frame.height();
                 let up_lines = (height / 2 + height % 2) as u16;
                 execute!(stdout(), cursor::MoveUp(up_lines)).unwrap();
             }
@@ -325,9 +325,10 @@ fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
     };
 
     if should_report {
+        let (new_width, new_height) = new_img.dimensions();
         println!(
             "From {}x{} the image is now {}x{}",
-            width, height, print_width, print_height
+            width, height, new_width, new_height
         );
     }
     new_img
