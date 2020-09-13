@@ -69,6 +69,12 @@ pub fn run(mut conf: Config) {
 fn view_passed_files(conf: &mut Config, (tx, rx): TxRx) {
     //loop throught all files passed
     for filename in &conf.files {
+        //check if Ctrl-C has been received. If yes, stop iterating
+        if rx.try_recv().is_ok() {
+            tx.send(true)
+                .expect("Could not send signal to clean up terminal.");
+            break;
+        };
         match fs::metadata(filename) {
             Ok(m) => {
                 //if its a directory, stop gif looping because there will probably be more files
@@ -90,7 +96,7 @@ fn view_directory(conf: &Config, dirname: &str, (tx, rx): TxRx) {
     match fs::read_dir(dirname) {
         Ok(iter) => {
             for dir_entry_result in iter {
-                //check if Ctrl-C has been received
+                //check if Ctrl-C has been received. If yes, stop iterating
                 if rx.try_recv().is_ok() {
                     tx.send(true)
                         .expect("Could not send signal to clean up terminal.");
@@ -204,7 +210,7 @@ fn try_print_gif<R: Read>(
                 thread::sleep(THIRTY_MILLIS);
 
                 //if ctrlc is received then respond so the handler can clear the
-                //terminal from leftover colors
+                // terminal from leftover colors
                 if rx.try_recv().is_ok() {
                     tx.send(true)
                         .expect("Could not send signal to clean up terminal");
