@@ -13,9 +13,8 @@ exclude = ["img/*"]
 
 [dependencies]
 libc = "0.2"
-clap = "2.33.0"
+clap = "2.33"
 termcolor = "1.1"
-gif = "0.10.3"
 crossterm = "0.17"
 ansi_colours = "1.0"
 
@@ -23,5 +22,5 @@ ansi_colours = "1.0"
 image = { version = "0.22.3", default-features = false, features = ["gif_codec", "jpeg", "ico", "jpeg-decoder", "png_codec", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt"] }
 
 [target.'cfg(not(target_os = "wasi"))'.dependencies]
-ctrlc = { version = "3.1.4", features = ["termination"] }
+ctrlc = { version = "3.1", features = ["termination"] }
 image = "0.23"
