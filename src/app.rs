@@ -10,6 +10,8 @@ use std::{thread, time::Duration};
 
 const THIRTY_MILLIS: Duration = Duration::from_millis(30);
 
+type TxRx<'a> = (&'a mpsc::Sender<bool>, &'a mpsc::Receiver<bool>);
+
 pub fn run(mut conf: Config) {
     //create two channels so that ctrlc-handler and the main thread can pass messages in order to
     // communicate when printing must be stopped without distorting the current frame
@@ -48,9 +50,11 @@ pub fn run(mut conf: Config) {
             .read_to_end(&mut buf)
             .expect("Could not read until EOF.");
 
-        if try_print_gif(&conf, BufReader::new(&*buf), &tx_print, &rx_print).is_err() {
+        if try_print_gif(&conf, BufReader::new(&*buf), (&tx_print, &rx_print)).is_err() {
             if let Ok(img) = image::load_from_memory(&buf) {
-                resize_and_print(&conf, true, &img);
+                let new_img = resize(&conf, true, &img);
+
+                printer::print(&new_img, conf.transparent, conf.truecolor);
             } else {
                 let err = String::from("Data from stdin could not be decoded as an image.");
                 //we want to exit the program => be verbose and have no tolerance
@@ -58,23 +62,29 @@ pub fn run(mut conf: Config) {
             };
         }
     } else {
-        view_passed_files(&mut conf, &tx_print, &rx_print);
+        view_passed_files(&mut conf, (&tx_print, &rx_print));
     }
 }
 
-fn view_passed_files(conf: &mut Config, tx: &mpsc::Sender<bool>, rx: &mpsc::Receiver<bool>) {
+fn view_passed_files(conf: &mut Config, (tx, rx): TxRx) {
     //loop throught all files passed
     for filename in &conf.files {
+        //check if Ctrl-C has been received. If yes, stop iterating
+        if rx.try_recv().is_ok() {
+            tx.send(true)
+                .expect("Could not send signal to clean up terminal.");
+            break;
+        };
         match fs::metadata(filename) {
             Ok(m) => {
                 //if its a directory, stop gif looping because there will probably be more files
                 if m.is_dir() {
                     conf.loop_gif = false;
-                    view_directory(conf, filename, tx, rx);
+                    view_directory(conf, filename, (tx, rx));
                 }
                 //if a file has been passed individually and fails, do so intolerantly
                 else {
-                    view_file(conf, filename, false, tx, rx);
+                    view_file(conf, filename, false, (tx, rx));
                 }
             }
             Err(e) => eprintln!("{}", e),
@@ -82,16 +92,11 @@ fn view_passed_files(conf: &mut Config, tx: &mpsc::Sender<bool>, rx: &mpsc::Rece
     }
 }
 
-fn view_directory(
-    conf: &Config,
-    dirname: &str,
-    tx: &mpsc::Sender<bool>,
-    rx: &mpsc::Receiver<bool>,
-) {
+fn view_directory(conf: &Config, dirname: &str, (tx, rx): TxRx) {
     match fs::read_dir(dirname) {
         Ok(iter) => {
             for dir_entry_result in iter {
-                //check if Ctrl-C has been received
+                //check if Ctrl-C has been received. If yes, stop iterating
                 if rx.try_recv().is_ok() {
                     tx.send(true)
                         .expect("Could not send signal to clean up terminal.");
@@ -105,12 +110,12 @@ fn view_directory(
                                 if metadata.is_dir() {
                                     //if -r is passed, continue down
                                     if conf.recursive {
-                                        view_directory(conf, path_name, tx, rx);
+                                        view_directory(conf, path_name, (tx, rx));
                                     }
                                 }
                                 //if it is a regular file, viu it with tolerance = true
                                 else {
-                                    view_file(conf, path_name, true, tx, rx);
+                                    view_file(conf, path_name, true, (tx, rx));
                                 }
                             } else {
                                 eprintln!("Could not get path name, skipping...");
@@ -130,13 +135,7 @@ fn view_directory(
 //the tolerance argument specifies either if the program will
 // - exit on error (when one of the passed files could not be viewed)
 // - fail silently and continue (for a file in a directory)
-fn view_file(
-    conf: &Config,
-    filename: &str,
-    tolerant: bool,
-    tx: &mpsc::Sender<bool>,
-    rx: &mpsc::Receiver<bool>,
-) {
+fn view_file(conf: &Config, filename: &str, tolerant: bool, (tx, rx): TxRx) {
     if conf.name {
         println!("{}:", filename);
     }
@@ -149,31 +148,33 @@ fn view_file(
     };
 
     //errors should be reported if -v is passed or if we do not tolerate them
-    let should_report_err = conf.verbose || !tolerant;
+    let should_report = conf.verbose || !tolerant;
 
-    if try_print_gif(conf, BufReader::new(file_in), tx, rx).is_err() {
+    if try_print_gif(conf, BufReader::new(file_in), (tx, rx)).is_err() {
         //the provided image is not a gif so try to view it
         match image::io::Reader::open(filename) {
             Ok(i) => match i.with_guessed_format() {
                 Ok(img) => match img.decode() {
                     Ok(decoded) => {
-                        resize_and_print(conf, true, &decoded);
+                        let new_img = resize(conf, true, &decoded);
+
+                        printer::print(&new_img, conf.transparent, conf.truecolor);
                     }
                     //Could not guess format
-                    Err(e) => error_and_quit(filename, e.to_string(), should_report_err, tolerant),
+                    Err(e) => error_and_quit(filename, e.to_string(), should_report, tolerant),
                 },
 
                 Err(e) => error_and_quit(
                     filename,
-                    format!("An IO error occured while docoding: {}", e),
-                    should_report_err,
+                    format!("An IO error occured while decoding: {}", e),
+                    should_report,
                     tolerant,
                 ),
             },
             Err(e) => error_and_quit(
                 filename,
                 format!("Could not open file: {}", e),
-                should_report_err,
+                should_report,
                 tolerant,
             ),
         };
@@ -183,21 +184,21 @@ fn view_file(
 fn try_print_gif<R: Read>(
     conf: &Config,
     input_stream: R,
-    tx: &mpsc::Sender<bool>,
-    rx: &mpsc::Receiver<bool>,
+    (tx, rx): TxRx,
 ) -> Result<(), image::ImageError> {
     let decoder = GifDecoder::new(input_stream)?;
-    //if it is a legit gif read the frames and start printing them
-    let frames = decoder.into_frames().collect_frames()?;
+    //read all frames of the gif and resize them all at once before starting to print them
+    let resized_frames: Vec<DynamicImage> = decoder
+        .into_frames()
+        .collect_frames()?
+        .into_iter()
+        .map(|f| resize(conf, false, &DynamicImage::ImageRgba8(f.into_buffer())))
+        .collect();
 
     'infinite: loop {
-        let mut iter = frames.iter().peekable();
+        let mut iter = resized_frames.iter().peekable();
         while let Some(frame) = iter.next() {
-            let (_, height) = resize_and_print(
-                conf,
-                false,
-                &DynamicImage::ImageRgba8(frame.buffer().to_owned()),
-            );
+            printer::print(&frame, conf.transparent, conf.truecolor);
 
             if conf.static_gif {
                 break 'infinite;
@@ -207,9 +208,8 @@ fn try_print_gif<R: Read>(
             {
                 thread::sleep(THIRTY_MILLIS);
 
-                //TODO: listen for user input to stop(e.g 'q'), not only Ctrl-C
                 //if ctrlc is received then respond so the handler can clear the
-                //terminal from leftover colors
+                // terminal from leftover colors
                 if rx.try_recv().is_ok() {
                     tx.send(true)
                         .expect("Could not send signal to clean up terminal");
@@ -223,6 +223,7 @@ fn try_print_gif<R: Read>(
             if iter.peek().is_some() || conf.loop_gif {
                 //since picture height is in pixel, we divide by 2 to get the height in
                 // terminal cells
+                let height = frame.height();
                 let up_lines = (height / 2 + height % 2) as u16;
                 execute!(stdout(), cursor::MoveUp(up_lines)).unwrap();
             }
@@ -244,6 +245,8 @@ fn error_and_quit(filename: &str, e: String, verbose: bool, tolerant: bool) {
 }
 
 fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
+    let should_report = conf.verbose && is_not_gif;
+
     let mut new_img;
     let (width, height) = img.dimensions();
     let (mut print_width, mut print_height) = (width, height);
@@ -257,7 +260,7 @@ fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
     }
     match (conf.width, conf.height) {
         (None, None) => {
-            if conf.verbose && is_not_gif {
+            if should_report {
                 println!(
                     "Neither width, nor height is specified, therefore terminal size will be matched"
                 );
@@ -271,7 +274,7 @@ fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
                 Err(e) => {
                     //If getting terminal size fails, fall back to some default size
                     size = (100, 40);
-                    if conf.verbose && is_not_gif {
+                    if should_report {
                         eprintln!("{}", e);
                     }
                 }
@@ -288,7 +291,7 @@ fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
             if height > h {
                 print_height = 2 * h;
             }
-            if conf.verbose && is_not_gif {
+            if should_report {
                 println!(
                     "Usable space is {}x{}, resizing and preserving aspect ratio",
                     print_width, print_height
@@ -297,7 +300,7 @@ fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
             new_img = img.thumbnail(print_width, print_height);
         }
         (Some(_), None) | (None, Some(_)) => {
-            if conf.verbose && is_not_gif {
+            if should_report {
                 println!(
                     "Either width or height is specified, resizing to {}x{} and preserving aspect ratio",
                     print_width, print_height
@@ -306,7 +309,7 @@ fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
             new_img = img.thumbnail(print_width, print_height);
         }
         (Some(_w), Some(_h)) => {
-            if conf.verbose && is_not_gif {
+            if should_report {
                 println!(
                     "Both width and height are specified, resizing to {}x{} without preserving aspect ratio",
                     print_width,
@@ -320,24 +323,15 @@ fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
     if conf.mirror {
         new_img = new_img.fliph();
     };
-    new_img
-}
 
-fn resize_and_print(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> (u32, u32) {
-    let new_img = resize(conf, is_not_gif, img);
-
-    printer::print(&new_img, conf.transparent, conf.truecolor);
-
-    let (print_width, print_height) = new_img.dimensions();
-    let (width, height) = img.dimensions();
-    if conf.verbose && is_not_gif {
+    if should_report {
+        let (new_width, new_height) = new_img.dimensions();
         println!(
             "From {}x{} the image is now {}x{}",
-            width, height, print_width, print_height
+            width, height, new_width, new_height
         );
     }
-
-    (print_width, print_height)
+    new_img
 }
 
 #[cfg(test)]
@@ -408,6 +402,6 @@ mod test {
     fn test_view_without_extension() {
         let conf = Config::test_config();
         let (tx, rx) = mpsc::channel();
-        view_file(&conf, "img/bfa", false, &tx, &rx);
+        view_file(&conf, "img/bfa", false, (&tx, &rx));
     }
 }
