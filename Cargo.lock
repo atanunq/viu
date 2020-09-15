@@ -712,6 +712,18 @@ dependencies = [
  "image 0.23.9",
  "libc",
  "termcolor",
+ "viuer",
+]
+
+[[package]]
+name = "viuer"
+version = "0.1.0"
+dependencies = [
+ "ansi_colours",
+ "crossterm",
+ "image 0.23.9",
+ "libc",
+ "termcolor",
 ]
 
 [[package]]

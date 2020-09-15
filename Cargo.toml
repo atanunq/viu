@@ -17,6 +17,7 @@ clap = "2.33"
 termcolor = "1.1"
 crossterm = "0.17"
 ansi_colours = "1.0"
+viuer = { path = "../viuer" }
 
 [target.'cfg(target_os = "wasi")'.dependencies]
 image = { version = "0.22.3", default-features = false, features = ["gif_codec", "jpeg", "ico", "jpeg-decoder", "png_codec", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt"] }

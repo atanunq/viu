@@ -1,5 +1,4 @@
 use crate::config::Config;
-use crate::printer;
 use crossterm::terminal::{self, Clear, ClearType};
 use crossterm::{cursor, execute};
 use image::{gif::GifDecoder, AnimationDecoder, DynamicImage, GenericImageView};
@@ -54,7 +53,12 @@ pub fn run(mut conf: Config) {
             if let Ok(img) = image::load_from_memory(&buf) {
                 let new_img = resize(&conf, true, &img);
 
-                printer::print(&new_img, conf.transparent, conf.truecolor);
+                let viuer_conf = viuer::Config {
+                    transparent: conf.transparent,
+                    truecolor: conf.truecolor,
+                    ..Default::default()
+                };
+                viuer::print(&new_img, &viuer_conf).expect("Could not print image");
             } else {
                 let err = String::from("Data from stdin could not be decoded as an image.");
                 //we want to exit the program => be verbose and have no tolerance
@@ -158,7 +162,12 @@ fn view_file(conf: &Config, filename: &str, tolerant: bool, (tx, rx): TxRx) {
                     Ok(decoded) => {
                         let new_img = resize(conf, true, &decoded);
 
-                        printer::print(&new_img, conf.transparent, conf.truecolor);
+                        let viuer_conf = viuer::Config {
+                            transparent: conf.transparent,
+                            truecolor: conf.truecolor,
+                            ..Default::default()
+                        };
+                        viuer::print(&new_img, &viuer_conf).expect("Could not print image");
                     }
                     //Could not guess format
                     Err(e) => error_and_quit(filename, e.to_string(), should_report, tolerant),
@@ -198,7 +207,12 @@ fn try_print_gif<R: Read>(
     'infinite: loop {
         let mut iter = resized_frames.iter().peekable();
         while let Some(frame) = iter.next() {
-            printer::print(&frame, conf.transparent, conf.truecolor);
+            let viuer_conf = viuer::Config {
+                transparent: conf.transparent,
+                truecolor: conf.truecolor,
+                ..Default::default()
+            };
+            viuer::print(&frame, &viuer_conf).expect("Could not print image");
 
             if conf.static_gif {
                 break 'infinite;
