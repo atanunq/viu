@@ -156,37 +156,17 @@ fn view_file(conf: &Config, filename: &str, tolerant: bool, (tx, rx): TxRx) {
 
     if try_print_gif(conf, BufReader::new(file_in), (tx, rx)).is_err() {
         //the provided image is not a gif so try to view it
-        match image::io::Reader::open(filename) {
-            Ok(i) => match i.with_guessed_format() {
-                Ok(img) => match img.decode() {
-                    Ok(decoded) => {
-                        let new_img = resize(conf, true, &decoded);
-
-                        let viuer_conf = viuer::Config {
-                            transparent: conf.transparent,
-                            truecolor: conf.truecolor,
-                            ..Default::default()
-                        };
-                        viuer::print(&new_img, &viuer_conf).expect("Could not print image");
-                    }
-                    //Could not guess format
-                    Err(e) => error_and_quit(filename, e.to_string(), should_report, tolerant),
-                },
-
-                Err(e) => error_and_quit(
-                    filename,
-                    format!("An IO error occured while decoding: {}", e),
-                    should_report,
-                    tolerant,
-                ),
-            },
-            Err(e) => error_and_quit(
-                filename,
-                format!("Could not open file: {}", e),
-                should_report,
-                tolerant,
-            ),
+        let viuer_conf = viuer::Config {
+            transparent: conf.transparent,
+            truecolor: conf.truecolor,
+            width: conf.width,
+            height: conf.height,
+            ..Default::default()
         };
+        match viuer::print_from_file(filename, &viuer_conf) {
+            Ok(_) => {}
+            Err(e) => error_and_quit(filename, e.to_string(), should_report, tolerant),
+        }
     }
 }
 
