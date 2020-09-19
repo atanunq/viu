@@ -169,7 +169,8 @@ fn try_print_gif<R: Read>(
         .map(|f| {
             viuer::resize(
                 &DynamicImage::ImageRgba8(f.into_buffer()),
-                &conf.viuer_config,
+                conf.viuer_config.width,
+                conf.viuer_config.height,
             )
         })
         .collect();
