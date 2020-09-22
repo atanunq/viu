@@ -3,7 +3,6 @@ use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg
 
 mod app;
 mod config;
-mod term;
 
 use config::Config;
 

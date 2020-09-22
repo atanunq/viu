@@ -1,4 +1,3 @@
-use crate::term::truecolor_available;
 use clap::{value_t, ArgMatches};
 use viuer::Config as ViuerConfig;
 
@@ -36,10 +35,8 @@ impl<'a> Config<'a> {
         let loop_gif = files.len() <= 1 && !once;
 
         let transparent = matches.is_present("transparent");
-        let truecolor = truecolor_available();
 
         let viuer_config = ViuerConfig {
-            truecolor,
             transparent,
             width,
             height,
