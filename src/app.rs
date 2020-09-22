@@ -11,6 +11,7 @@ const THIRTY_MILLIS: Duration = Duration::from_millis(30);
 
 type TxRx<'a> = (&'a mpsc::Sender<bool>, &'a mpsc::Receiver<bool>);
 
+//TODO: remove expect calls, use custom error type instead
 pub fn run(mut conf: Config) {
     //create two channels so that ctrlc-handler and the main thread can pass messages in order to
     // communicate when printing must be stopped without distorting the current frame
@@ -31,7 +32,15 @@ pub fn run(mut conf: Config) {
                 .recv()
                 .expect("Could not receive signal to clean up terminal.");
 
-            execute!(stdout(), Clear(ClearType::FromCursorDown)).unwrap();
+            if let Err(crossterm::ErrorKind::IoError(e)) =
+                execute!(stdout(), Clear(ClearType::FromCursorDown))
+            {
+                if e.kind() == std::io::ErrorKind::BrokenPipe {
+                    //Do nothing. Output is probably piped to `head` or a similar tool
+                } else {
+                    panic!(e);
+                }
+            }
             std::process::exit(0);
         })
         .expect("Could not setup Ctrl-C handler");
@@ -205,7 +214,16 @@ fn try_print_gif<R: Read>(
                 // terminal cells
                 let height = frame.height();
                 let up_lines = (height / 2 + height % 2) as u16;
-                execute!(stdout(), cursor::MoveUp(up_lines)).unwrap();
+                if let Err(crossterm::ErrorKind::IoError(e)) =
+                    execute!(stdout(), cursor::MoveUp(up_lines))
+                {
+                    if e.kind() == std::io::ErrorKind::BrokenPipe {
+                        //Stop printing. Output is probably piped to `head` or a similar tool
+                        break 'infinite;
+                    } else {
+                        return Err(image::ImageError::IoError(e));
+                    }
+                }
             }
         }
         if !conf.loop_gif {
