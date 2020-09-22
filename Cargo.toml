@@ -12,11 +12,8 @@ keywords = ["terminal", "image", "gif"]
 exclude = ["img/*"]
 
 [dependencies]
-libc = "0.2"
 clap = "2.33"
-termcolor = "1.1"
 crossterm = "0.17"
-ansi_colours = "1.0"
 viuer = { path = "../viuer" }
 
 [target.'cfg(target_os = "wasi")'.dependencies]

@@ -704,14 +704,11 @@ checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
 name = "viu"
 version = "1.1.0"
 dependencies = [
- "ansi_colours",
  "clap",
  "crossterm",
  "ctrlc",
  "image 0.22.5",
  "image 0.23.9",
- "libc",
- "termcolor",
  "viuer",
 ]
 
@@ -722,7 +719,6 @@ dependencies = [
  "ansi_colours",
  "crossterm",
  "image 0.23.9",
- "libc",
  "termcolor",
 ]
 
