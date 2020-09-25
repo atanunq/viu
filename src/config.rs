@@ -40,6 +40,7 @@ impl<'a> Config<'a> {
             transparent,
             width,
             height,
+            absolute_offset: false,
             ..Default::default()
         };
 
@@ -64,7 +65,10 @@ impl<'a> Config<'a> {
             mirror: false,
             recursive: false,
             static_gif: false,
-            viuer_config: ViuerConfig::default(),
+            viuer_config: ViuerConfig {
+                absolute_offset: false,
+                ..Default::default()
+            },
         }
     }
 }
