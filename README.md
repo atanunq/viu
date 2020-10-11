@@ -1,8 +1,9 @@
 # viu
 
 ### Description
-A small command-line application to view images from the terminal written in Rust. It uses lower
-half blocks (▄ or \u2584) to fit 2 pixels into a single cell by adjusting foreground and background
+A small command-line application to view images from the terminal written in Rust. It is basically the
+front-end of [`viuer`](https://github.com/atanunq/viuer). It uses lower half blocks
+(▄ or \u2584) to fit 2 pixels into a single cell by adjusting foreground and background
 colours accordingly.
 
 When run, `viu` will check the value of `$COLORTERM`. If it contains either `truecolor` or `24bit`,
