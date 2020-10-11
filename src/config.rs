@@ -1,5 +1,5 @@
-use crate::term::truecolor_available;
 use clap::{value_t, ArgMatches};
+use viuer::Config as ViuerConfig;
 
 pub struct Config<'a> {
     pub files: Vec<&'a str>,
@@ -7,12 +7,9 @@ pub struct Config<'a> {
     pub verbose: bool,
     pub name: bool,
     pub mirror: bool,
-    pub transparent: bool,
     pub recursive: bool,
-    pub width: Option<u32>,
-    pub height: Option<u32>,
-    pub truecolor: bool,
     pub static_gif: bool,
+    pub viuer_config: ViuerConfig,
 }
 
 impl<'a> Config<'a> {
@@ -36,7 +33,16 @@ impl<'a> Config<'a> {
         let once = matches.is_present("once");
         let static_gif = matches.is_present("static");
         let loop_gif = files.len() <= 1 && !once;
-        let truecolor = truecolor_available();
+
+        let transparent = matches.is_present("transparent");
+
+        let viuer_config = ViuerConfig {
+            transparent,
+            width,
+            height,
+            absolute_offset: false,
+            ..Default::default()
+        };
 
         Config {
             files,
@@ -44,12 +50,9 @@ impl<'a> Config<'a> {
             verbose: matches.is_present("verbose"),
             name: matches.is_present("name"),
             mirror: matches.is_present("mirror"),
-            transparent: matches.is_present("transparent"),
             recursive: matches.is_present("recursive"),
-            width,
-            height,
-            truecolor,
             static_gif,
+            viuer_config,
         }
     }
     #[cfg(test)]
@@ -60,12 +63,12 @@ impl<'a> Config<'a> {
             verbose: false,
             name: false,
             mirror: false,
-            transparent: false,
             recursive: false,
-            width: None,
-            height: None,
-            truecolor: true,
             static_gif: false,
+            viuer_config: ViuerConfig {
+                absolute_offset: false,
+                ..Default::default()
+            },
         }
     }
 }

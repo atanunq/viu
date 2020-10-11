@@ -1,6 +1,5 @@
 use crate::config::Config;
-use crate::printer;
-use crossterm::terminal::{self, Clear, ClearType};
+use crossterm::terminal::{Clear, ClearType};
 use crossterm::{cursor, execute};
 use image::{gif::GifDecoder, AnimationDecoder, DynamicImage, GenericImageView};
 use std::fs;
@@ -12,6 +11,7 @@ const THIRTY_MILLIS: Duration = Duration::from_millis(30);
 
 type TxRx<'a> = (&'a mpsc::Sender<bool>, &'a mpsc::Receiver<bool>);
 
+//TODO: remove expect calls, use custom error type instead
 pub fn run(mut conf: Config) {
     //create two channels so that ctrlc-handler and the main thread can pass messages in order to
     // communicate when printing must be stopped without distorting the current frame
@@ -32,7 +32,15 @@ pub fn run(mut conf: Config) {
                 .recv()
                 .expect("Could not receive signal to clean up terminal.");
 
-            execute!(stdout(), Clear(ClearType::FromCursorDown)).unwrap();
+            if let Err(crossterm::ErrorKind::IoError(e)) =
+                execute!(stdout(), Clear(ClearType::FromCursorDown))
+            {
+                if e.kind() == std::io::ErrorKind::BrokenPipe {
+                    //Do nothing. Output is probably piped to `head` or a similar tool
+                } else {
+                    panic!(e);
+                }
+            }
             std::process::exit(0);
         })
         .expect("Could not setup Ctrl-C handler");
@@ -52,9 +60,7 @@ pub fn run(mut conf: Config) {
 
         if try_print_gif(&conf, BufReader::new(&*buf), (&tx_print, &rx_print)).is_err() {
             if let Ok(img) = image::load_from_memory(&buf) {
-                let new_img = resize(&conf, true, &img);
-
-                printer::print(&new_img, conf.transparent, conf.truecolor);
+                viuer::print(&img, &conf.viuer_config).expect("Could not print image");
             } else {
                 let err = String::from("Data from stdin could not be decoded as an image.");
                 //we want to exit the program => be verbose and have no tolerance
@@ -152,32 +158,10 @@ fn view_file(conf: &Config, filename: &str, tolerant: bool, (tx, rx): TxRx) {
 
     if try_print_gif(conf, BufReader::new(file_in), (tx, rx)).is_err() {
         //the provided image is not a gif so try to view it
-        match image::io::Reader::open(filename) {
-            Ok(i) => match i.with_guessed_format() {
-                Ok(img) => match img.decode() {
-                    Ok(decoded) => {
-                        let new_img = resize(conf, true, &decoded);
-
-                        printer::print(&new_img, conf.transparent, conf.truecolor);
-                    }
-                    //Could not guess format
-                    Err(e) => error_and_quit(filename, e.to_string(), should_report, tolerant),
-                },
-
-                Err(e) => error_and_quit(
-                    filename,
-                    format!("An IO error occured while decoding: {}", e),
-                    should_report,
-                    tolerant,
-                ),
-            },
-            Err(e) => error_and_quit(
-                filename,
-                format!("Could not open file: {}", e),
-                should_report,
-                tolerant,
-            ),
-        };
+        match viuer::print_from_file(filename, &conf.viuer_config) {
+            Ok(_) => {}
+            Err(e) => error_and_quit(filename, e.to_string(), should_report, tolerant),
+        }
     }
 }
 
@@ -186,19 +170,24 @@ fn try_print_gif<R: Read>(
     input_stream: R,
     (tx, rx): TxRx,
 ) -> Result<(), image::ImageError> {
-    let decoder = GifDecoder::new(input_stream)?;
     //read all frames of the gif and resize them all at once before starting to print them
-    let resized_frames: Vec<DynamicImage> = decoder
+    let resized_frames: Vec<DynamicImage> = GifDecoder::new(input_stream)?
         .into_frames()
         .collect_frames()?
         .into_iter()
-        .map(|f| resize(conf, false, &DynamicImage::ImageRgba8(f.into_buffer())))
+        .map(|f| {
+            viuer::resize(
+                &DynamicImage::ImageRgba8(f.into_buffer()),
+                conf.viuer_config.width,
+                conf.viuer_config.height,
+            )
+        })
         .collect();
 
     'infinite: loop {
         let mut iter = resized_frames.iter().peekable();
         while let Some(frame) = iter.next() {
-            printer::print(&frame, conf.transparent, conf.truecolor);
+            viuer::print(&frame, &conf.viuer_config).expect("Could not print image");
 
             if conf.static_gif {
                 break 'infinite;
@@ -225,7 +214,16 @@ fn try_print_gif<R: Read>(
                 // terminal cells
                 let height = frame.height();
                 let up_lines = (height / 2 + height % 2) as u16;
-                execute!(stdout(), cursor::MoveUp(up_lines)).unwrap();
+                if let Err(crossterm::ErrorKind::IoError(e)) =
+                    execute!(stdout(), cursor::MoveUp(up_lines))
+                {
+                    if e.kind() == std::io::ErrorKind::BrokenPipe {
+                        //Stop printing. Output is probably piped to `head` or a similar tool
+                        break 'infinite;
+                    } else {
+                        return Err(image::ImageError::IoError(e));
+                    }
+                }
             }
         }
         if !conf.loop_gif {
@@ -244,159 +242,9 @@ fn error_and_quit(filename: &str, e: String, verbose: bool, tolerant: bool) {
     }
 }
 
-fn resize(conf: &Config, is_not_gif: bool, img: &DynamicImage) -> DynamicImage {
-    let should_report = conf.verbose && is_not_gif;
-
-    let mut new_img;
-    let (width, height) = img.dimensions();
-    let (mut print_width, mut print_height) = (width, height);
-
-    if let Some(w) = conf.width {
-        print_width = w;
-    }
-    if let Some(h) = conf.height {
-        //since 2 pixels are printed per terminal cell, an image with twice the height can be fit
-        print_height = 2 * h;
-    }
-    match (conf.width, conf.height) {
-        (None, None) => {
-            if should_report {
-                println!(
-                    "Neither width, nor height is specified, therefore terminal size will be matched"
-                );
-            }
-
-            let size;
-            match terminal::size() {
-                Ok(s) => {
-                    size = s;
-                }
-                Err(e) => {
-                    //If getting terminal size fails, fall back to some default size
-                    size = (100, 40);
-                    if should_report {
-                        eprintln!("{}", e);
-                    }
-                }
-            }
-            let (term_w, term_h) = size;
-            let w = u32::from(term_w);
-            //One less row because two reasons:
-            // - the prompt after executing the command will take a line
-            // - gifs flicker
-            let h = u32::from(term_h - 1);
-            if width > w {
-                print_width = w;
-            }
-            if height > h {
-                print_height = 2 * h;
-            }
-            if should_report {
-                println!(
-                    "Usable space is {}x{}, resizing and preserving aspect ratio",
-                    print_width, print_height
-                );
-            }
-            new_img = img.thumbnail(print_width, print_height);
-        }
-        (Some(_), None) | (None, Some(_)) => {
-            if should_report {
-                println!(
-                    "Either width or height is specified, resizing to {}x{} and preserving aspect ratio",
-                    print_width, print_height
-                );
-            }
-            new_img = img.thumbnail(print_width, print_height);
-        }
-        (Some(_w), Some(_h)) => {
-            if should_report {
-                println!(
-                    "Both width and height are specified, resizing to {}x{} without preserving aspect ratio",
-                    print_width,
-                    print_height
-                );
-            }
-            new_img = img.thumbnail_exact(print_width, print_height);
-        }
-    };
-
-    if conf.mirror {
-        new_img = new_img.fliph();
-    };
-
-    if should_report {
-        let (new_width, new_height) = new_img.dimensions();
-        println!(
-            "From {}x{} the image is now {}x{}",
-            width, height, new_width, new_height
-        );
-    }
-    new_img
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
-
-    #[test]
-    fn test_resize_with_none() {
-        let conf = Config::test_config();
-        match image::open("img/bfa.jpg") {
-            Ok(i) => {
-                //make sure the app doesn't panic without input
-                let _img = resize(&conf, true, &i);
-            }
-            Err(_) => {
-                panic!("Could not run resize test");
-            }
-        };
-    }
-
-    #[test]
-    fn test_resize_only_width() {
-        let mut conf = Config::test_config();
-        conf.width = Some(200);
-        match image::open("img/bfa.jpg") {
-            Ok(i) => {
-                let img = resize(&conf, true, &i);
-                assert_eq!(img.dimensions(), (200, 112));
-            }
-            Err(_) => {
-                panic!("Could not run resize test");
-            }
-        };
-    }
-
-    #[test]
-    fn test_resize_only_height() {
-        let mut conf = Config::test_config();
-        conf.height = Some(20);
-        match image::open("img/bfa.jpg") {
-            Ok(i) => {
-                let img = resize(&conf, true, &i);
-                assert_eq!(img.dimensions(), (71, 40));
-            }
-            Err(_) => {
-                panic!("Could not run resize test");
-            }
-        };
-    }
-
-    #[test]
-    fn test_resize_given_both() {
-        let mut conf = Config::test_config();
-        conf.height = Some(20);
-        conf.width = Some(200);
-        match image::open("img/bfa.jpg") {
-            Ok(i) => {
-                let img = resize(&conf, true, &i);
-                assert_eq!(img.dimensions(), (200, 40));
-            }
-            Err(_) => {
-                panic!("Could not run resize test");
-            }
-        };
-    }
 
     #[test]
     fn test_view_without_extension() {
