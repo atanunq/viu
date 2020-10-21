@@ -176,18 +176,23 @@ fn try_print_gif<R: Read>(
         .collect_frames()?
         .into_iter()
         .map(|f| {
-            viuer::resize(
-                &DynamicImage::ImageRgba8(f.into_buffer()),
-                conf.viuer_config.width,
-                conf.viuer_config.height,
-            )
+            if viuer::has_kitty_support() == viuer::KittySupport::None {
+                viuer::resize(
+                    &DynamicImage::ImageRgba8(f.into_buffer()),
+                    conf.viuer_config.width,
+                    conf.viuer_config.height,
+                )
+            } else {
+                DynamicImage::ImageRgba8(f.into_buffer())
+            }
         })
         .collect();
 
     'infinite: loop {
         let mut iter = resized_frames.iter().peekable();
         while let Some(frame) = iter.next() {
-            viuer::print(&frame, &conf.viuer_config).expect("Could not print image");
+            let (_print_width, print_height) =
+                viuer::print(&frame, &conf.viuer_config).expect("Could not print image");
 
             if conf.static_gif {
                 break 'infinite;
@@ -212,10 +217,8 @@ fn try_print_gif<R: Read>(
             if iter.peek().is_some() || conf.loop_gif {
                 //since picture height is in pixel, we divide by 2 to get the height in
                 // terminal cells
-                let height = frame.height();
-                let up_lines = (height / 2 + height % 2) as u16;
                 if let Err(crossterm::ErrorKind::IoError(e)) =
-                    execute!(stdout(), cursor::MoveUp(up_lines))
+                    execute!(stdout(), cursor::MoveUp(print_height as u16))
                 {
                     if e.kind() == std::io::ErrorKind::BrokenPipe {
                         //Stop printing. Output is probably piped to `head` or a similar tool
