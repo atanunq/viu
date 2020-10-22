@@ -41,6 +41,7 @@ impl<'a> Config<'a> {
             width,
             height,
             absolute_offset: false,
+            kitty_delete: true,
             ..Default::default()
         };
 
