@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crossterm::terminal::{Clear, ClearType};
 use crossterm::{cursor, execute};
-use image::{gif::GifDecoder, AnimationDecoder, DynamicImage, GenericImageView};
+use image::{gif::GifDecoder, AnimationDecoder, DynamicImage};
 use std::fs;
 use std::io::{stdin, stdout, BufReader, Read, Write};
 use std::sync::mpsc;
