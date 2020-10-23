@@ -2,11 +2,12 @@
 
 ### Description
 A small command-line application to view images from the terminal written in Rust. It is basically the
-front-end of [`viuer`](https://github.com/atanunq/viuer). It uses lower half blocks
-(▄ or \u2584) to fit 2 pixels into a single cell by adjusting foreground and background
-colours accordingly.
+front-end of [`viuer`](https://github.com/atanunq/viuer). It uses the
+[Kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol.html), if supported.
+If not, lower half blocks (▄ or \u2584) are displayed insread.
 
-When run, `viu` will check the value of `$COLORTERM`. If it contains either `truecolor` or `24bit`,
+Based on the value of `$TERM`, `viuer` decides whether to use the Kitty protocol or not. For half
+blocks, `$COLORTERM` is inspected. If it contains either `truecolor` or `24bit`,
 truecolor (16 million colors) will be used. If not, it will fallback to using only ansi256. A nice
 explanation can be found in this [gist](https://gist.github.com/XVilka/8346728).
 
@@ -81,6 +82,13 @@ wapm install -g viu
 There is an [AUR package available for Arch Linux](https://aur.archlinux.org/packages/viu/).
 
 ### Usage
+On a [Kitty](https://github.com/kovidgoyal/kitty) terminal:
+
+![Kitty](img/kittydemo.gif)
+
+
+Using half blocks (Kitty protocol and `tmux` do not get along):
+
 ![Demo](img/demo.gif)
 
 
