@@ -14,7 +14,7 @@ exclude = ["img/*"]
 [dependencies]
 clap = "2.33"
 crossterm = "0.18"
-viuer = { path = "../viuer" }
+viuer = "0.2"
 
 [target.'cfg(target_os = "wasi")'.dependencies]
 image = { version = "0.22.3", default-features = false, features = ["gif_codec", "jpeg", "ico", "jpeg-decoder", "png_codec", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt"] }
