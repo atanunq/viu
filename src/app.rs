@@ -5,9 +5,7 @@ use image::{gif::GifDecoder, AnimationDecoder, DynamicImage};
 use std::fs;
 use std::io::{stdin, stdout, BufReader, Read, Write};
 use std::sync::mpsc;
-use std::{thread, time::Duration};
-
-const THIRTY_MILLIS: Duration = Duration::from_millis(30);
+use std::{thread};
 
 type TxRx<'a> = (&'a mpsc::Sender<bool>, &'a mpsc::Receiver<bool>);
 
@@ -200,7 +198,7 @@ fn try_print_gif<R: Read>(
 
             #[cfg(not(target_os = "wasi"))]
             {
-                thread::sleep(THIRTY_MILLIS);
+                thread::sleep(conf.frame_duration);
 
                 //if ctrlc is received then respond so the handler can clear the
                 // terminal from leftover colors
