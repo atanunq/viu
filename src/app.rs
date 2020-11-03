@@ -5,7 +5,7 @@ use image::{gif::GifDecoder, AnimationDecoder, DynamicImage};
 use std::fs;
 use std::io::{stdin, stdout, BufReader, Read, Write};
 use std::sync::mpsc;
-use std::{thread};
+use std::thread;
 
 type TxRx<'a> = (&'a mpsc::Sender<bool>, &'a mpsc::Receiver<bool>);
 
