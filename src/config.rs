@@ -47,9 +47,9 @@ impl<'a> Config<'a> {
             ..Default::default()
         };
 
-        let frame_duration = if matches.is_present("frames_per_second") {
+        let frame_duration = if matches.is_present("frames-per-second") {
             let frame_rate =
-                value_t!(matches, "frames_per_second", f32).unwrap_or_else(|e| e.exit());
+                value_t!(matches, "frames-per-second", f32).unwrap_or_else(|e| e.exit());
             Some(Duration::from_secs_f32(1.0 / frame_rate))
         } else {
             None

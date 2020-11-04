@@ -78,11 +78,11 @@ fn main() {
                 .help("Recurse down directories if passed one"),
         )
         .arg(
-            Arg::with_name("frames_per_second")
+            Arg::with_name("frames-per-second")
                 .short("f")
-                .long("frame_rate")
+                .long("frame-rate")
                 .takes_value(true)
-                .help("Play gif at the given frames rate. Units of frames per second. Default: Use delay embedded in .gif."),
+                .help("Play gif at the given frame rate"),
         )
         .get_matches();
 

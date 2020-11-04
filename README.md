@@ -137,6 +137,7 @@ FLAGS:
     -v, --verbose        Output what is going on
 
 OPTIONS:
+    -f, --frame-rate <frames-per-second>    Play gif at the given frame rate
     -h, --height <height>    Resize the image to a provided height
     -w, --width <width>      Resize the image to a provided width
 
