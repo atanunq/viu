@@ -63,7 +63,7 @@ impl<'a> Config<'a> {
             recursive: matches.is_present("recursive"),
             static_gif,
             viuer_config,
-            frame_duration: frame_duration,
+            frame_duration,
         }
     }
     #[cfg(test)]
