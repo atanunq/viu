@@ -11,7 +11,7 @@ pub struct Config<'a> {
     pub recursive: bool,
     pub static_gif: bool,
     pub viuer_config: ViuerConfig,
-    pub frame_duration: Duration,
+    pub frame_duration: Option<Duration>,
 }
 
 impl<'a> Config<'a> {
@@ -47,10 +47,12 @@ impl<'a> Config<'a> {
             ..Default::default()
         };
 
-        let frame_rate = if matches.is_present("frames_per_second") {
-            value_t!(matches, "frames_per_second", f32).unwrap_or_else(|e| e.exit())
+        let frame_duration = if matches.is_present("frames_per_second") {
+            let frame_rate =
+                value_t!(matches, "frames_per_second", f32).unwrap_or_else(|e| e.exit());
+            Some(Duration::from_secs_f32(1.0 / frame_rate))
         } else {
-            33.3333
+            None
         };
         Config {
             files,
@@ -61,7 +63,7 @@ impl<'a> Config<'a> {
             recursive: matches.is_present("recursive"),
             static_gif,
             viuer_config,
-            frame_duration: Duration::from_secs_f32(1.0 / frame_rate),
+            frame_duration: frame_duration,
         }
     }
     #[cfg(test)]
@@ -78,7 +80,7 @@ impl<'a> Config<'a> {
                 absolute_offset: false,
                 ..Default::default()
             },
-            frame_duration: Duration::from_millis(30),
+            frame_duration: None,
         }
     }
 }

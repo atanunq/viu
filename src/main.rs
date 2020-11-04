@@ -82,7 +82,7 @@ fn main() {
                 .short("f")
                 .long("frame_rate")
                 .takes_value(true)
-                .help("Play gif at the given frames rate. Default is 33.333 frames per second"),
+                .help("Play gif at the given frames rate. Units of frames per second. Default: Use delay embedded in .gif."),
         )
         .get_matches();
 
