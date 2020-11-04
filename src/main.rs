@@ -77,6 +77,13 @@ fn main() {
                 .long("recursive")
                 .help("Recurse down directories if passed one"),
         )
+        .arg(
+            Arg::with_name("frames-per-second")
+                .short("f")
+                .long("frame-rate")
+                .takes_value(true)
+                .help("Play gif at the given frame rate"),
+        )
         .get_matches();
 
     let conf = Config::new(&matches);

@@ -7,8 +7,6 @@ use std::io::{stdin, stdout, BufReader, Read, Write};
 use std::sync::mpsc;
 use std::{thread, time::Duration};
 
-const THIRTY_MILLIS: Duration = Duration::from_millis(30);
-
 type TxRx<'a> = (&'a mpsc::Sender<bool>, &'a mpsc::Receiver<bool>);
 
 //TODO: remove expect calls, use custom error type instead
@@ -171,26 +169,30 @@ fn try_print_gif<R: Read>(
     (tx, rx): TxRx,
 ) -> Result<(), image::ImageError> {
     //read all frames of the gif and resize them all at once before starting to print them
-    let resized_frames: Vec<DynamicImage> = GifDecoder::new(input_stream)?
+    let resized_frames: Vec<(Duration, DynamicImage)> = GifDecoder::new(input_stream)?
         .into_frames()
         .collect_frames()?
         .into_iter()
         .map(|f| {
+            let delay = Duration::from(f.delay());
             if viuer::has_kitty_support() == viuer::KittySupport::None {
-                viuer::resize(
-                    &DynamicImage::ImageRgba8(f.into_buffer()),
-                    conf.viuer_config.width,
-                    conf.viuer_config.height,
+                (
+                    delay,
+                    viuer::resize(
+                        &DynamicImage::ImageRgba8(f.into_buffer()),
+                        conf.viuer_config.width,
+                        conf.viuer_config.height,
+                    ),
                 )
             } else {
-                DynamicImage::ImageRgba8(f.into_buffer())
+                (delay, DynamicImage::ImageRgba8(f.into_buffer()))
             }
         })
         .collect();
 
     'infinite: loop {
         let mut iter = resized_frames.iter().peekable();
-        while let Some(frame) = iter.next() {
+        while let Some((delay, frame)) = iter.next() {
             let (_print_width, print_height) =
                 viuer::print(&frame, &conf.viuer_config).expect("Could not print image");
 
@@ -200,7 +202,10 @@ fn try_print_gif<R: Read>(
 
             #[cfg(not(target_os = "wasi"))]
             {
-                thread::sleep(THIRTY_MILLIS);
+                thread::sleep(match conf.frame_duration {
+                    None => *delay,
+                    Some(duration) => duration,
+                });
 
                 //if ctrlc is received then respond so the handler can clear the
                 // terminal from leftover colors
