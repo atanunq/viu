@@ -56,6 +56,7 @@ pub fn run(mut conf: Config) {
             .read_to_end(&mut buf)
             .expect("Could not read until EOF.");
 
+        //TODO: print_from_file if data is a gif and terminal is iTerm
         if try_print_gif(&conf, BufReader::new(&*buf), (&tx_print, &rx_print)).is_err() {
             if let Ok(img) = image::load_from_memory(&buf) {
                 viuer::print(&img, &conf.viuer_config).expect("Could not print image");
@@ -143,7 +144,7 @@ fn view_file(conf: &Config, filename: &str, tolerant: bool, (tx, rx): TxRx) {
     if conf.name {
         println!("{}:", filename);
     }
-    let file_in = match fs::File::open(filename) {
+    let mut file_in = match fs::File::open(filename) {
         Err(e) => {
             eprintln!("{}", e);
             return;
@@ -154,11 +155,22 @@ fn view_file(conf: &Config, filename: &str, tolerant: bool, (tx, rx): TxRx) {
     //errors should be reported if -v is passed or if we do not tolerate them
     let should_report = conf.verbose || !tolerant;
 
-    if try_print_gif(conf, BufReader::new(file_in), (tx, rx)).is_err() {
-        //the provided image is not a gif so try to view it
-        match viuer::print_from_file(filename, &conf.viuer_config) {
-            Ok(_) => {}
-            Err(e) => error_and_quit(filename, e.to_string(), should_report, tolerant),
+    // Read some of the first bytes to guess the image format
+    let mut format_guess_buf: [u8; 20] = [0; 20];
+    file_in.read_exact(&mut format_guess_buf).unwrap();
+
+    // If the file is a gif, let iTerm handle it natively
+    if viuer::is_iterm_supported()
+        && (image::guess_format(&format_guess_buf[..]).unwrap()) == image::ImageFormat::Gif
+    {
+        viuer::print_from_file(filename, &conf.viuer_config).unwrap();
+    } else if try_print_gif(conf, BufReader::new(file_in), (tx, rx)).is_err() {
+        {
+            //the provided image is not a gif so try to view it
+            match viuer::print_from_file(filename, &conf.viuer_config) {
+                Ok(_) => {}
+                Err(e) => error_and_quit(filename, e.to_string(), should_report, tolerant),
+            }
         }
     }
 }
@@ -175,7 +187,12 @@ fn try_print_gif<R: Read>(
         .into_iter()
         .map(|f| {
             let delay = Duration::from(f.delay());
-            if viuer::has_kitty_support() == viuer::KittySupport::None {
+            // Keep the image as it is for Kitty and iTerm, it will be printed in full resolution there
+            if viuer::is_iterm_supported()
+                || viuer::get_kitty_support() != viuer::KittySupport::None
+            {
+                (delay, DynamicImage::ImageRgba8(f.into_buffer()))
+            } else {
                 (
                     delay,
                     viuer::resize(
@@ -184,8 +201,6 @@ fn try_print_gif<R: Read>(
                         conf.viuer_config.height,
                     ),
                 )
-            } else {
-                (delay, DynamicImage::ImageRgba8(f.into_buffer()))
             }
         })
         .collect();
