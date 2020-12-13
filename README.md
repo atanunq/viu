@@ -80,6 +80,7 @@ wasmer run  target/wasm32-wasi/release/viu.wasm --dir=. -- img/giphy.gif
 ### Binary
 A precompiled binary can be downloaded from the [release
 page](https://www.github.com/atanunq/viu/releases/latest).
+GPG fingerprint is B195BADA40BEF20E4907A5AC628280A0217A7B0F.
 
 ### Wapm
 
