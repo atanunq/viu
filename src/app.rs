@@ -3,7 +3,7 @@ use crossterm::terminal::{Clear, ClearType};
 use crossterm::{cursor, execute};
 use image::{gif::GifDecoder, AnimationDecoder, DynamicImage};
 use std::fs;
-use std::io::{stdin, stdout, BufReader, Read, Write};
+use std::io::{stdin, stdout, BufReader, Read, Seek, Write};
 use std::sync::mpsc;
 use std::{thread, time::Duration};
 
@@ -152,12 +152,14 @@ fn view_file(conf: &Config, filename: &str, tolerant: bool, (tx, rx): TxRx) {
         Ok(f) => f,
     };
 
-    //errors should be reported if -v is passed or if we do not tolerate them
+    // errors should be reported if -v is passed or if we do not tolerate them
     let should_report = conf.verbose || !tolerant;
 
     // Read some of the first bytes to guess the image format
     let mut format_guess_buf: [u8; 20] = [0; 20];
     file_in.read_exact(&mut format_guess_buf).unwrap();
+    // Reset the cursor
+    file_in.seek(std::io::SeekFrom::Start(0)).unwrap();
 
     // If the file is a gif, let iTerm handle it natively
     if viuer::is_iterm_supported()
