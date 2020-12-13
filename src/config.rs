@@ -77,6 +77,7 @@ impl<'a> Config<'a> {
             static_gif: false,
             viuer_config: ViuerConfig {
                 absolute_offset: false,
+                use_kitty: false,
                 ..Default::default()
             },
             frame_duration: None,
