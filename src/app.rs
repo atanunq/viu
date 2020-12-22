@@ -231,6 +231,6 @@ mod test {
     fn test_view_without_extension() {
         let conf = Config::test_config();
         let (tx, rx) = mpsc::channel();
-        view_file(&conf, "img/bfa", false, (&tx, &rx)).unwrap();
+        view_file(&conf, "img/bfa", (&tx, &rx)).unwrap();
     }
 }
