@@ -3,14 +3,15 @@ use crossterm::terminal::{Clear, ClearType};
 use crossterm::{cursor, execute};
 use image::{gif::GifDecoder, AnimationDecoder, DynamicImage};
 use std::fs;
-use std::io::{stdin, stdout, BufReader, Read, Seek, Write};
+use std::io::{stdin, stdout, BufReader, Error, ErrorKind, Read, Seek, Write};
 use std::sync::mpsc;
 use std::{thread, time::Duration};
+use viuer::ViuResult;
 
 type TxRx<'a> = (&'a mpsc::Sender<bool>, &'a mpsc::Receiver<bool>);
 
-//TODO: remove expect calls, use custom error type instead
-pub fn run(mut conf: Config) {
+// TODO: Create a viu-specific result and error types, do not reuse viuer's
+pub fn run(mut conf: Config) -> ViuResult {
     //create two channels so that ctrlc-handler and the main thread can pass messages in order to
     // communicate when printing must be stopped without distorting the current frame
     let (tx_ctrlc, rx_print) = mpsc::channel();
@@ -41,7 +42,7 @@ pub fn run(mut conf: Config) {
             }
             std::process::exit(0);
         })
-        .expect("Could not setup Ctrl-C handler");
+        .map_err(|_| Error::new(ErrorKind::Other, "Could not setup Ctrl-C handler."))?;
     }
 
     //TODO: handle multiple files
@@ -52,129 +53,111 @@ pub fn run(mut conf: Config) {
         let mut handle = stdin.lock();
 
         let mut buf: Vec<u8> = Vec::new();
-        let _ = handle
-            .read_to_end(&mut buf)
-            .expect("Could not read until EOF.");
+        let _ = handle.read_to_end(&mut buf)?;
 
         //TODO: print_from_file if data is a gif and terminal is iTerm
-        if try_print_gif(&conf, BufReader::new(&*buf), (&tx_print, &rx_print)).is_err() {
-            if let Ok(img) = image::load_from_memory(&buf) {
-                viuer::print(&img, &conf.viuer_config).expect("Could not print image");
-            } else {
-                let err = String::from("Data from stdin could not be decoded as an image.");
-                //we want to exit the program => be verbose and have no tolerance
-                error_and_quit("Stdin", err, true, false);
-            };
+        match try_print_gif(&conf, &buf[..], (&tx_print, &rx_print)) {
+            Ok(_) => Ok(()),
+            Err(_) => {
+                let img = image::load_from_memory(&buf)?;
+                viuer::print(&img, &conf.viuer_config).map(|_| ())
+            }
         }
     } else {
-        view_passed_files(&mut conf, (&tx_print, &rx_print));
+        view_passed_files(&mut conf, (&tx_print, &rx_print))
     }
 }
 
-fn view_passed_files(conf: &mut Config, (tx, rx): TxRx) {
+fn view_passed_files(conf: &mut Config, (tx, rx): TxRx) -> ViuResult {
     //loop throught all files passed
     for filename in &conf.files {
         //check if Ctrl-C has been received. If yes, stop iterating
         if rx.try_recv().is_ok() {
-            tx.send(true)
-                .expect("Could not send signal to clean up terminal.");
-            break;
+            return tx.send(true).map_err(|_| {
+                Error::new(ErrorKind::Other, "Could not send signal to clean up.").into()
+            });
         };
         match fs::metadata(filename) {
             Ok(m) => {
                 //if its a directory, stop gif looping because there will probably be more files
                 if m.is_dir() {
                     conf.loop_gif = false;
-                    view_directory(conf, filename, (tx, rx));
+                    view_directory(conf, filename, (tx, rx))?;
                 }
                 //if a file has been passed individually and fails, do so intolerantly
                 else {
-                    view_file(conf, filename, false, (tx, rx));
+                    view_file(conf, filename, (tx, rx))?;
                 }
             }
-            Err(e) => eprintln!("{}", e),
-        }
-    }
-}
-
-fn view_directory(conf: &Config, dirname: &str, (tx, rx): TxRx) {
-    match fs::read_dir(dirname) {
-        Ok(iter) => {
-            for dir_entry_result in iter {
-                //check if Ctrl-C has been received. If yes, stop iterating
-                if rx.try_recv().is_ok() {
-                    tx.send(true)
-                        .expect("Could not send signal to clean up terminal.");
-                    break;
-                };
-                match dir_entry_result {
-                    //check if the given file is a directory
-                    Ok(dir_entry) => match dir_entry.metadata() {
-                        Ok(metadata) => {
-                            if let Some(path_name) = dir_entry.path().to_str() {
-                                if metadata.is_dir() {
-                                    //if -r is passed, continue down
-                                    if conf.recursive {
-                                        view_directory(conf, path_name, (tx, rx));
-                                    }
-                                }
-                                //if it is a regular file, viu it with tolerance = true
-                                else {
-                                    view_file(conf, path_name, true, (tx, rx));
-                                }
-                            } else {
-                                eprintln!("Could not get path name, skipping...");
-                                continue;
-                            }
-                        }
-                        Err(e) => eprintln!("Could not fetch file metadata: {}", e),
-                    },
-                    Err(e) => eprintln!("Iterator failed to provide a DirEntry: {}", e),
-                }
+            Err(e) => {
+                return Err(e.into());
             }
         }
-        Err(e) => eprintln!("Could not get directory iterator: {}", e),
     }
+    Ok(())
 }
 
-//the tolerance argument specifies either if the program will
-// - exit on error (when one of the passed files could not be viewed)
-// - fail silently and continue (for a file in a directory)
-fn view_file(conf: &Config, filename: &str, tolerant: bool, (tx, rx): TxRx) {
+fn view_directory(conf: &Config, dirname: &str, (tx, rx): TxRx) -> ViuResult {
+    for dir_entry_result in fs::read_dir(dirname)? {
+        //check if Ctrl-C has been received. If yes, stop iterating
+        if rx.try_recv().is_ok() {
+            return tx.send(true).map_err(|_| {
+                Error::new(ErrorKind::Other, "Could not send signal to clean up.").into()
+            });
+        };
+        let dir_entry = dir_entry_result?;
+        let metadata = dir_entry.metadata()?;
+
+        //check if the given file is a directory
+        if let Some(path_name) = dir_entry.path().to_str() {
+            if metadata.is_dir() {
+                //if -r is passed, continue down
+                if conf.recursive {
+                    view_directory(conf, path_name, (tx, rx))?;
+                }
+            }
+            //if it is a regular file, viu it, but do not exit on error
+            else {
+                println!("Viuing file {}", path_name);
+                let _ = view_file(conf, path_name, (tx, rx));
+            }
+        } else {
+            eprintln!("Could not get path name, skipping...");
+            continue;
+        }
+    }
+
+    Ok(())
+}
+
+fn view_file(conf: &Config, filename: &str, (tx, rx): TxRx) -> ViuResult {
     if conf.name {
         println!("{}:", filename);
     }
-    let mut file_in = match fs::File::open(filename) {
-        Err(e) => {
-            eprintln!("{}", e);
-            return;
-        }
-        Ok(f) => f,
-    };
-
-    // errors should be reported if -v is passed or if we do not tolerate them
-    let should_report = conf.verbose || !tolerant;
+    let mut file_in = fs::File::open(filename)?;
 
     // Read some of the first bytes to guess the image format
     let mut format_guess_buf: [u8; 20] = [0; 20];
-    file_in.read_exact(&mut format_guess_buf).unwrap();
+    file_in.read_exact(&mut format_guess_buf)?;
     // Reset the cursor
-    file_in.seek(std::io::SeekFrom::Start(0)).unwrap();
+    file_in.seek(std::io::SeekFrom::Start(0))?;
 
     // If the file is a gif, let iTerm handle it natively
     if viuer::is_iterm_supported()
-        && (image::guess_format(&format_guess_buf[..]).unwrap()) == image::ImageFormat::Gif
+        && (image::guess_format(&format_guess_buf[..])?) == image::ImageFormat::Gif
     {
-        viuer::print_from_file(filename, &conf.viuer_config).unwrap();
-    } else if try_print_gif(conf, BufReader::new(file_in), (tx, rx)).is_err() {
-        {
-            //the provided image is not a gif so try to view it
-            match viuer::print_from_file(filename, &conf.viuer_config) {
-                Ok(_) => {}
-                Err(e) => error_and_quit(filename, e.to_string(), should_report, tolerant),
+        viuer::print_from_file(filename, &conf.viuer_config)?;
+    } else {
+        match try_print_gif(conf, BufReader::new(file_in), (tx, rx)) {
+            Ok(_) => {}
+            Err(_) => {
+                //the provided image is not a gif so try to view it
+                viuer::print_from_file(filename, &conf.viuer_config)?;
             }
-        }
-    }
+        };
+    };
+
+    Ok(())
 }
 
 fn try_print_gif<R: Read>(
@@ -258,15 +241,6 @@ fn try_print_gif<R: Read>(
     Ok(())
 }
 
-fn error_and_quit(filename: &str, e: String, verbose: bool, tolerant: bool) {
-    if verbose {
-        eprintln!("\"{}\": {}", filename, e);
-    }
-    if !tolerant {
-        std::process::exit(1);
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -275,6 +249,6 @@ mod test {
     fn test_view_without_extension() {
         let conf = Config::test_config();
         let (tx, rx) = mpsc::channel();
-        view_file(&conf, "img/bfa", false, (&tx, &rx));
+        view_file(&conf, "img/bfa", false, (&tx, &rx)).unwrap();
     }
 }

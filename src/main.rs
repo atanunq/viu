@@ -87,5 +87,8 @@ fn main() {
         .get_matches();
 
     let conf = Config::new(&matches);
-    app::run(conf);
+    match app::run(conf) {
+        Ok(_) => {}
+        Err(e) => eprintln!("{:?}", e),
+    }
 }
