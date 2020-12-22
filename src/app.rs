@@ -46,9 +46,8 @@ pub fn run(mut conf: Config) -> ViuResult {
     }
 
     //TODO: handle multiple files
-    //read stdin if only 1 parameter is passed and it is "-"
-    let should_read_stdin = conf.files.len() == 1 && conf.files[0] == "-";
-    if should_read_stdin {
+    //read stdin if only one parameter is passed and it is "-"
+    if conf.files.len() == 1 && conf.files[0] == "-" {
         let stdin = stdin();
         let mut handle = stdin.lock();
 
@@ -56,13 +55,14 @@ pub fn run(mut conf: Config) -> ViuResult {
         let _ = handle.read_to_end(&mut buf)?;
 
         //TODO: print_from_file if data is a gif and terminal is iTerm
-        match try_print_gif(&conf, &buf[..], (&tx_print, &rx_print)) {
-            Ok(_) => Ok(()),
-            Err(_) => {
-                let img = image::load_from_memory(&buf)?;
-                viuer::print(&img, &conf.viuer_config).map(|_| ())
-            }
-        }
+        if try_print_gif(&conf, &buf[..], (&tx_print, &rx_print)).is_err() {
+            //If stdin data is not a gif, treat it as a regular image
+
+            let img = image::load_from_memory(&buf)?;
+            viuer::print(&img, &conf.viuer_config)?;
+        };
+
+        Ok(())
     } else {
         view_passed_files(&mut conf, (&tx_print, &rx_print))
     }
@@ -77,21 +77,14 @@ fn view_passed_files(conf: &mut Config, (tx, rx): TxRx) -> ViuResult {
                 Error::new(ErrorKind::Other, "Could not send signal to clean up.").into()
             });
         };
-        match fs::metadata(filename) {
-            Ok(m) => {
-                //if its a directory, stop gif looping because there will probably be more files
-                if m.is_dir() {
-                    conf.loop_gif = false;
-                    view_directory(conf, filename, (tx, rx))?;
-                }
-                //if a file has been passed individually and fails, do so intolerantly
-                else {
-                    view_file(conf, filename, (tx, rx))?;
-                }
-            }
-            Err(e) => {
-                return Err(e.into());
-            }
+        //if its a directory, stop gif looping because there will probably be more files
+        if fs::metadata(filename)?.is_dir() {
+            conf.loop_gif = false;
+            view_directory(conf, filename, (tx, rx))?;
+        }
+        //if a file has been passed individually and fails, propagate the error
+        else {
+            view_file(conf, filename, (tx, rx))?;
         }
     }
     Ok(())
@@ -118,7 +111,6 @@ fn view_directory(conf: &Config, dirname: &str, (tx, rx): TxRx) -> ViuResult {
             }
             //if it is a regular file, viu it, but do not exit on error
             else {
-                println!("Viuing file {}", path_name);
                 let _ = view_file(conf, path_name, (tx, rx));
             }
         } else {
@@ -147,24 +139,15 @@ fn view_file(conf: &Config, filename: &str, (tx, rx): TxRx) -> ViuResult {
         && (image::guess_format(&format_guess_buf[..])?) == image::ImageFormat::Gif
     {
         viuer::print_from_file(filename, &conf.viuer_config)?;
-    } else {
-        match try_print_gif(conf, BufReader::new(file_in), (tx, rx)) {
-            Ok(_) => {}
-            Err(_) => {
-                //the provided image is not a gif so try to view it
-                viuer::print_from_file(filename, &conf.viuer_config)?;
-            }
-        };
+    } else if try_print_gif(conf, BufReader::new(file_in), (tx, rx)).is_err() {
+        //the provided image is not a gif so try to view it
+        viuer::print_from_file(filename, &conf.viuer_config)?;
     };
 
     Ok(())
 }
 
-fn try_print_gif<R: Read>(
-    conf: &Config,
-    input_stream: R,
-    (tx, rx): TxRx,
-) -> Result<(), image::ImageError> {
+fn try_print_gif<R: Read>(conf: &Config, input_stream: R, (tx, rx): TxRx) -> ViuResult {
     //read all frames of the gif and resize them all at once before starting to print them
     let resized_frames: Vec<(Duration, DynamicImage)> = GifDecoder::new(input_stream)?
         .into_frames()
@@ -193,8 +176,7 @@ fn try_print_gif<R: Read>(
     'infinite: loop {
         let mut iter = resized_frames.iter().peekable();
         while let Some((delay, frame)) = iter.next() {
-            let (_print_width, print_height) =
-                viuer::print(&frame, &conf.viuer_config).expect("Could not print image");
+            let (_print_width, print_height) = viuer::print(&frame, &conf.viuer_config)?;
 
             if conf.static_gif {
                 break 'infinite;
@@ -210,9 +192,9 @@ fn try_print_gif<R: Read>(
                 //if ctrlc is received then respond so the handler can clear the
                 // terminal from leftover colors
                 if rx.try_recv().is_ok() {
-                    tx.send(true)
-                        .expect("Could not send signal to clean up terminal");
-                    break;
+                    return tx.send(true).map_err(|_| {
+                        Error::new(ErrorKind::Other, "Could not send signal to clean up.").into()
+                    });
                 };
             }
 
@@ -229,7 +211,7 @@ fn try_print_gif<R: Read>(
                         //Stop printing. Output is probably piped to `head` or a similar tool
                         break 'infinite;
                     } else {
-                        return Err(image::ImageError::IoError(e));
+                        return Err(e.into());
                     }
                 }
             }
