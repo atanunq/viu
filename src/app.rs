@@ -34,7 +34,7 @@ pub fn run(mut conf: Config) -> ViuResult {
             if let Err(crossterm::ErrorKind::IoError(e)) =
                 execute!(stdout(), Clear(ClearType::FromCursorDown))
             {
-                if e.kind() == std::io::ErrorKind::BrokenPipe {
+                if e.kind() == ErrorKind::BrokenPipe {
                     //Do nothing. Output is probably piped to `head` or a similar tool
                 } else {
                     panic!(e);
@@ -210,7 +210,7 @@ fn try_print_gif<R: Read>(conf: &Config, input_stream: R, (tx, rx): TxRx) -> Viu
                 if let Err(crossterm::ErrorKind::IoError(e)) =
                     execute!(stdout(), cursor::MoveUp(print_height as u16))
                 {
-                    if e.kind() == std::io::ErrorKind::BrokenPipe {
+                    if e.kind() == ErrorKind::BrokenPipe {
                         //Stop printing. Output is probably piped to `head` or a similar tool
                         break 'infinite;
                     } else {
