@@ -77,7 +77,7 @@ fn view_passed_files(conf: &mut Config, (tx, rx): TxRx) -> ViuResult {
                 Error::new(ErrorKind::Other, "Could not send signal to clean up.").into()
             });
         };
-        //if its a directory, stop gif looping because there will probably be more files
+        //if it's a directory, stop gif looping because there will probably be more files
         if fs::metadata(filename)?.is_dir() {
             conf.loop_gif = false;
             view_directory(conf, filename, (tx, rx))?;
@@ -139,10 +139,13 @@ fn view_file(conf: &Config, filename: &str, (tx, rx): TxRx) -> ViuResult {
         && (image::guess_format(&format_guess_buf[..])?) == image::ImageFormat::Gif
     {
         viuer::print_from_file(filename, &conf.viuer_config)?;
-    } else if try_print_gif(conf, BufReader::new(file_in), (tx, rx)).is_err() {
+    } else {
+        let result = try_print_gif(conf, BufReader::new(file_in), (tx, rx));
         //the provided image is not a gif so try to view it
-        viuer::print_from_file(filename, &conf.viuer_config)?;
-    };
+        if result.is_err() {
+            viuer::print_from_file(filename, &conf.viuer_config)?;
+        }
+    }
 
     Ok(())
 }
