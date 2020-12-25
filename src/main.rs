@@ -87,8 +87,9 @@ fn main() {
         .get_matches();
 
     let conf = Config::new(&matches);
-    match app::run(conf) {
-        Ok(_) => {}
-        Err(e) => eprintln!("{:?}", e),
+
+    if let Err(e) = app::run(conf) {
+        eprintln!("{:?}", e);
+        std::process::exit(1);
     }
 }
