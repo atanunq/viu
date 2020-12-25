@@ -9,7 +9,7 @@ repository = "https://github.com/atanunq/viu"
 description = "View images right from the terminal."
 categories = ["command-line-utilities"]
 keywords = ["terminal", "image", "gif"]
-exclude = ["img/*"]
+exclude = ["/img", "/.github"]
 
 [dependencies]
 clap = "2.33"
