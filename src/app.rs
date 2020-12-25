@@ -99,15 +99,12 @@ fn view_directory(conf: &Config, dirname: &str, (tx, rx): TxRx) -> ViuResult {
             });
         };
         let dir_entry = dir_entry_result?;
-        let metadata = dir_entry.metadata()?;
 
         //check if the given file is a directory
         if let Some(path_name) = dir_entry.path().to_str() {
-            if metadata.is_dir() {
-                //if -r is passed, continue down
-                if conf.recursive {
-                    view_directory(conf, path_name, (tx, rx))?;
-                }
+            //if -r is passed, continue down
+            if conf.recursive && dir_entry.metadata()?.is_dir() {
+                view_directory(conf, path_name, (tx, rx))?;
             }
             //if it is a regular file, viu it, but do not exit on error
             else {
