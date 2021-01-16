@@ -93,7 +93,7 @@ wapm install -g viu
 ### Packages
 
 #### Arch Linux
-There is an [AUR package available for Arch Linux](https://aur.archlinux.org/packages/viu/).
+Available in [`community/viu`](https://archlinux.org/packages/community/x86_64/viu/).
 
 #### NetBSD
 Available in [`graphics/viu`](http://cdn.netbsd.org/pub/pkgsrc/current/pkgsrc/graphics/viu/README.html).
