@@ -3,7 +3,6 @@
 - [Installation](#installation)
   - [From source (recommended)](#from-source-recommended)
   - [Binary](#binary)
-  - [Wapm](#wapm)
   - [Packages](#packages)
     - [Arch Linux](#arch-linux)
     - [NetBSD](#netbsd)
@@ -37,7 +36,6 @@ explanation can be found in this [gist](https://gist.github.com/XVilka/8346728).
 ### From source (recommended)
 
 Installation from source requires a local [Rust environment](https://www.rust-lang.org/tools/install).
-Please note that at least Rust 1.39 is required.
 
 ```bash
 git clone https://github.com/atanunq/viu.git
@@ -53,42 +51,11 @@ Or without cloning:
 ```bash
 cargo install viu
 ```
-<!--
-##### [WASI](https://github.com/wasmerio/wasmer)
-First, you will need the WASI target installed in your Rust system:
 
-```bash
-rustup target add wasm32-wasi --toolchain nightly
-```
-
-Once WASI is available, you can build the WebAssembly binary by yourself with:
-
-```bash
-cargo +nightly build --release --target wasm32-wasi
-```
-
-This will create a new file located at `target/wasm32-wasi/release/viu.wasm`.
-
-When the wasm file is created you can upload it to wapm or execute it with wasmer:
-
-```bash
-wapm publish
-# OR
-wasmer run  target/wasm32-wasi/release/viu.wasm --dir=. -- img/giphy.gif
-```
--->
 ### Binary
 A precompiled binary can be downloaded from the [release
 page](https://www.github.com/atanunq/viu/releases/latest).
 GPG fingerprint is B195BADA40BEF20E4907A5AC628280A0217A7B0F.
-
-### Wapm
-
-Viu can be installed in Linux, macOS and Windows using [wapm](https://wapm.io/):
-
-```bash
-wapm install -g viu
-```
 
 ### Packages
 

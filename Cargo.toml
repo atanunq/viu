@@ -13,12 +13,7 @@ exclude = ["/img", "/.github"]
 
 [dependencies]
 clap = "2.33"
-crossterm = "0.18"
+crossterm = "0.19"
 viuer = "0.3"
-
-[target.'cfg(target_os = "wasi")'.dependencies]
-image = { version = "0.22.3", default-features = false, features = ["gif_codec", "jpeg", "ico", "jpeg-decoder", "png_codec", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt"] }
-
-[target.'cfg(not(target_os = "wasi"))'.dependencies]
 ctrlc = { version = "3.1", features = ["termination"] }
 image = "0.23"
