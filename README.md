@@ -92,8 +92,7 @@ Ctrl-C was pressed to stop the GIFs.
 
 
 When `viu` receives only one file and it is GIF, it will be displayed over and over until Ctrl-C is
-pressed. However, when couple of files are up for display (second example) the GIF will be displayed
-only once.
+pressed. However, when couple of files are up for display the GIF will be displayed only once.
 
 ### iTerm note
 iTerm can handle GIFs by itself with better performance, but configuration through `--once`
