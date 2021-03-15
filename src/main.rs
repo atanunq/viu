@@ -22,12 +22,6 @@ fn main() {
                 .multiple(true),
         )
         .arg(
-            Arg::with_name("verbose")
-                .short("v")
-                .long("verbose")
-                .help("Output what is going on"),
-        )
-        .arg(
             Arg::with_name("name")
                 .short("n")
                 .long("name")

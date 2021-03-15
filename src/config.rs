@@ -5,7 +5,6 @@ use viuer::Config as ViuerConfig;
 pub struct Config<'a> {
     pub files: Vec<&'a str>,
     pub loop_gif: bool,
-    pub verbose: bool,
     pub name: bool,
     pub mirror: bool,
     pub recursive: bool,
@@ -56,7 +55,6 @@ impl<'a> Config<'a> {
         Config {
             files,
             loop_gif,
-            verbose: matches.is_present("verbose"),
             name: matches.is_present("name"),
             mirror: matches.is_present("mirror"),
             recursive: matches.is_present("recursive"),
@@ -70,7 +68,6 @@ impl<'a> Config<'a> {
         Config {
             files: vec![],
             loop_gif: true,
-            verbose: false,
             name: false,
             mirror: false,
             recursive: false,
