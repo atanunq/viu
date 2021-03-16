@@ -17,3 +17,7 @@ crossterm = "0.19"
 viuer = "0.4"
 ctrlc = { version = "3.1", features = ["termination"] }
 image = "0.23"
+
+[features]
+default = []
+sixel = ["viuer/sixel"]
