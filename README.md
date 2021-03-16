@@ -116,7 +116,6 @@ FLAGS:
     -r, --recursive      Recurse down directories if passed one
     -s, --static         Show only first frame of gif
     -t, --transparent    Display transparent image with transparent background
-    -v, --verbose        Output what is going on
 
 OPTIONS:
     -f, --frame-rate <frames-per-second>    Play gif at the given frame rate
