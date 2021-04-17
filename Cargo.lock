@@ -137,9 +137,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dca26ee1f8d361640700bde38b2c37d8c22b3ce2d360e1fc1c74ea4b0aa7d775"
+checksum = "06ed27e177f16d65f0f0c22a213e17c696ace5dd64b14258b52f9417ccb52db4"
 dependencies = [
  "cfg-if",
  "crossbeam-utils",
@@ -207,9 +207,9 @@ dependencies = [
 
 [[package]]
 name = "ctrlc"
-version = "3.1.8"
+version = "3.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c15b8ec3b5755a188c141c1f6a98e76de31b936209bf066b647979e2a84764a9"
+checksum = "232295399409a8b7ae41276757b5a1cc21032848d42bff2352261f958b3ca29a"
 dependencies = [
  "nix",
  "winapi 0.3.9",
@@ -250,9 +250,9 @@ dependencies = [
 
 [[package]]
 name = "gif"
-version = "0.11.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02efba560f227847cb41463a7395c514d127d4f74fff12ef0137fff1b84b96c4"
+checksum = "5a668f699973d0f573d15749b7002a9ac9e1f9c6b220e7b165601334c173d8de"
 dependencies = [
  "color_quant",
  "weezl",
@@ -328,15 +328,15 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.89"
+version = "0.2.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "538c092e5586f4cdd7dd8078c4a79220e3e168880218124dcbce860f0ea938c6"
+checksum = "9385f66bf6105b241aa65a61cb923ef20efc665cb9f9bb50ac2f0c4b7f378d41"
 
 [[package]]
 name = "lock_api"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd96ffd135b2fd7b973ac026d28085defbe8983df057ced3eb4f2130b0831312"
+checksum = "5a3c91c24eae6777794bb1997ad98bbb87daf92890acab859f7eaa4320333176"
 dependencies = [
  "scopeguard",
 ]
@@ -367,9 +367,9 @@ dependencies = [
 
 [[package]]
 name = "memoffset"
-version = "0.6.1"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "157b4208e3059a8f9e78d559edc658e13df41410cb3ae03979c83130067fdd87"
+checksum = "f83fb6581e8ed1f85fd45c116db8405483899489e38406156c25eb743554361d"
 dependencies = [
  "autocfg",
 ]
@@ -395,9 +395,9 @@ dependencies = [
 
 [[package]]
 name = "mio"
-version = "0.7.10"
+version = "0.7.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2182a122f3b7f3f5329cb1972cee089ba2459a0a80a56935e6e674f096f8d839"
+checksum = "cf80d3e903b34e0bd7282b218398aec54e082c840d9baf8339e0080a0c542956"
 dependencies = [
  "libc",
  "log",
@@ -408,11 +408,10 @@ dependencies = [
 
 [[package]]
 name = "miow"
-version = "0.3.6"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a33c1b55807fbed163481b5ba66db4b2fa6cde694a5027be10fb724206c5897"
+checksum = "b9f1c5b025cda876f66ef43a113f91ebc9f4ccef34843000e0adf6ebbab84e21"
 dependencies = [
- "socket2",
  "winapi 0.3.9",
 ]
 
@@ -598,9 +597,9 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94341e4e44e24f6b591b59e47a8a027df12e008d73fd5672dbea9cc22f4507d9"
+checksum = "8270314b5ccceb518e7e578952f0b72b88222d02e8f77f5ecf7abbb673539041"
 dependencies = [
  "bitflags",
 ]
@@ -700,17 +699,6 @@ name = "smallvec"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe0f37c9e8f3c5a4a66ad655a93c74daac4ad00c441533bf5c6e7990bb42604e"
-
-[[package]]
-name = "socket2"
-version = "0.3.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "122e570113d28d773067fab24266b66753f6ea915758651696b6e35e49f88d6e"
-dependencies = [
- "cfg-if",
- "libc",
- "winapi 0.3.9",
-]
 
 [[package]]
 name = "strsim"
