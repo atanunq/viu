@@ -37,7 +37,7 @@ pub fn run(mut conf: Config) -> ViuResult {
                 if e.kind() == ErrorKind::BrokenPipe {
                     //Do nothing. Output is probably piped to `head` or a similar tool
                 } else {
-                    panic!(e);
+                    panic!("{}", e);
                 }
             }
             std::process::exit(0);
