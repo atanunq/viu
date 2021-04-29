@@ -110,6 +110,7 @@ USAGE:
     When FILE is -, read standard input.
 
 FLAGS:
+    -b, --blocks         Force block output
     -m, --mirror         Display a mirror of the original image
     -n, --name           Output the name of the file before displaying
     -1, --once           Only loop once through the animation
