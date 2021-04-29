@@ -37,11 +37,17 @@ impl<'a> Config<'a> {
 
         let transparent = matches.is_present("transparent");
 
+        let use_blocks = matches.is_present("blocks");
+
         let viuer_config = ViuerConfig {
             transparent,
             width,
             height,
             absolute_offset: false,
+            use_kitty: !use_blocks,
+            use_iterm: !use_blocks,
+            #[cfg(feature = "sixel")]
+            sixel: !use_blocks,
             ..Default::default()
         };
 

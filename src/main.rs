@@ -78,6 +78,13 @@ fn main() {
                 .takes_value(true)
                 .help("Play gif at the given frame rate"),
         )
+        .arg(
+            Arg::with_name("blocks")
+                .short("b")
+                .long("blocks")
+                .takes_value(false)
+                .help("Force block output"),
+        )
         .get_matches();
 
     let conf = Config::new(&matches);
