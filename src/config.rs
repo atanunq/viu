@@ -47,7 +47,7 @@ impl<'a> Config<'a> {
             use_kitty: !use_blocks,
             use_iterm: !use_blocks,
             #[cfg(feature = "sixel")]
-            sixel: !use_blocks,
+            use_sixel: !use_blocks,
             ..Default::default()
         };
 
