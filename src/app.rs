@@ -127,7 +127,7 @@ fn view_file(conf: &Config, filename: &str, (tx, rx): TxRx) -> ViuResult {
 
     // Read some of the first bytes to guess the image format
     let mut format_guess_buf: [u8; 20] = [0; 20];
-    file_in.read(&mut format_guess_buf)?;
+    let _ = file_in.read(&mut format_guess_buf)? == 0;
     // Reset the cursor
     file_in.seek(std::io::SeekFrom::Start(0))?;
 
