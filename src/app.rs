@@ -31,9 +31,7 @@ pub fn run(mut conf: Config) -> ViuResult {
                 .recv()
                 .expect("Could not receive signal to clean up terminal.");
 
-            if let Err(crossterm::ErrorKind::IoError(e)) =
-                execute!(stdout(), Clear(ClearType::FromCursorDown))
-            {
+            if let Err(e) = execute!(stdout(), Clear(ClearType::FromCursorDown)) {
                 if e.kind() == ErrorKind::BrokenPipe {
                     //Do nothing. Output is probably piped to `head` or a similar tool
                 } else {
@@ -204,9 +202,7 @@ fn try_print_gif<R: Read>(conf: &Config, input_stream: R, (tx, rx): TxRx) -> Viu
             if iter.peek().is_some() || conf.loop_gif {
                 //since picture height is in pixel, we divide by 2 to get the height in
                 // terminal cells
-                if let Err(crossterm::ErrorKind::IoError(e)) =
-                    execute!(stdout(), cursor::MoveUp(print_height as u16))
-                {
+                if let Err(e) = execute!(stdout(), cursor::MoveUp(print_height as u16)) {
                     if e.kind() == ErrorKind::BrokenPipe {
                         //Stop printing. Output is probably piped to `head` or a similar tool
                         break 'infinite;
