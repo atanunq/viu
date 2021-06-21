@@ -820,9 +820,9 @@ dependencies = [
 
 [[package]]
 name = "viuer"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eef348d3244f76368cdc9cfab34401194eebb193de0e4dc8705a0b57fcf71353"
+checksum = "69ec12712ac3ca3d0044d41ccc872a38b4d2528e2bab9b1d6f562fd91445ed35"
 dependencies = [
  "ansi_colours",
  "base64",
