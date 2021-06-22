@@ -130,7 +130,8 @@ fn view_file(conf: &Config, filename: &str, (tx, rx): TxRx) -> ViuResult {
     file_in.seek(std::io::SeekFrom::Start(0))?;
 
     // If the file is a gif, let iTerm handle it natively
-    if viuer::is_iterm_supported()
+    if conf.viuer_config.use_iterm
+        && viuer::is_iterm_supported()
         && (image::guess_format(&format_guess_buf[..])?) == image::ImageFormat::Gif
     {
         viuer::print_from_file(filename, &conf.viuer_config)?;
@@ -154,8 +155,9 @@ fn try_print_gif<R: Read>(conf: &Config, input_stream: R, (tx, rx): TxRx) -> Viu
         .map(|f| {
             let delay = Duration::from(f.delay());
             // Keep the image as it is for Kitty and iTerm, it will be printed in full resolution there
-            if viuer::is_iterm_supported()
-                || viuer::get_kitty_support() != viuer::KittySupport::None
+            if (conf.viuer_config.use_iterm && viuer::is_iterm_supported())
+                || (conf.viuer_config.use_kitty
+                    && viuer::get_kitty_support() != viuer::KittySupport::None)
             {
                 (delay, DynamicImage::ImageRgba8(f.into_buffer()))
             } else {
