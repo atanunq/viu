@@ -17,31 +17,28 @@ pub fn run(mut conf: Config) -> ViuResult {
     let (tx_ctrlc, rx_print) = mpsc::channel();
     let (tx_print, rx_ctrlc) = mpsc::channel();
 
-    #[cfg(not(target_os = "wasi"))]
-    {
-        //handle Ctrl-C in order to clean up after ourselves
-        ctrlc::set_handler(move || {
-            //if ctrlc is received tell the infinite gif loop to stop drawing
-            // or stop the next file from being drawn
-            tx_ctrlc
-                .send(true)
-                .expect("Could not send signal to stop drawing.");
-            //a message will be received when that has happened so we can clear leftover symbols
-            let _ = rx_ctrlc
-                .recv()
-                .expect("Could not receive signal to clean up terminal.");
+    //handle Ctrl-C in order to clean up after ourselves
+    ctrlc::set_handler(move || {
+        //if ctrlc is received tell the infinite gif loop to stop drawing
+        // or stop the next file from being drawn
+        tx_ctrlc
+            .send(true)
+            .expect("Could not send signal to stop drawing.");
+        //a message will be received when that has happened so we can clear leftover symbols
+        let _ = rx_ctrlc
+            .recv()
+            .expect("Could not receive signal to clean up terminal.");
 
-            if let Err(e) = execute!(stdout(), Clear(ClearType::FromCursorDown)) {
-                if e.kind() == ErrorKind::BrokenPipe {
-                    //Do nothing. Output is probably piped to `head` or a similar tool
-                } else {
-                    panic!("{}", e);
-                }
+        if let Err(e) = execute!(stdout(), Clear(ClearType::FromCursorDown)) {
+            if e.kind() == ErrorKind::BrokenPipe {
+                //Do nothing. Output is probably piped to `head` or a similar tool
+            } else {
+                panic!("{}", e);
             }
-            std::process::exit(0);
-        })
-        .map_err(|_| Error::new(ErrorKind::Other, "Could not setup Ctrl-C handler."))?;
-    }
+        }
+        std::process::exit(0);
+    })
+    .map_err(|_| Error::new(ErrorKind::Other, "Could not setup Ctrl-C handler."))?;
 
     //TODO: handle multiple files
     //read stdin if only one parameter is passed and it is "-"
@@ -182,21 +179,18 @@ fn try_print_gif<R: Read>(conf: &Config, input_stream: R, (tx, rx): TxRx) -> Viu
                 break 'infinite;
             }
 
-            #[cfg(not(target_os = "wasi"))]
-            {
-                thread::sleep(match conf.frame_duration {
-                    None => *delay,
-                    Some(duration) => duration,
-                });
+            thread::sleep(match conf.frame_duration {
+                None => *delay,
+                Some(duration) => duration,
+            });
 
-                //if ctrlc is received then respond so the handler can clear the
-                // terminal from leftover colors
-                if rx.try_recv().is_ok() {
-                    return tx.send(true).map_err(|_| {
-                        Error::new(ErrorKind::Other, "Could not send signal to clean up.").into()
-                    });
-                };
-            }
+            //if ctrlc is received then respond so the handler can clear the
+            // terminal from leftover colors
+            if rx.try_recv().is_ok() {
+                return tx.send(true).map_err(|_| {
+                    Error::new(ErrorKind::Other, "Could not send signal to clean up.").into()
+                });
+            };
 
             //keep replacing old pixels as the gif goes on so that scrollback
             // buffer is not filled (do not do that if it is the last frame of the gif
