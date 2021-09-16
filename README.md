@@ -59,8 +59,17 @@ GPG fingerprint is B195BADA40BEF20E4907A5AC628280A0217A7B0F.
 
 ### Packages
 
+#### MacOS
+Available in [`brew`](https://formulae.brew.sh/formula/viu).
+```bash
+brew install viu
+```
+
 #### Arch Linux
 Available in [`community/viu`](https://archlinux.org/packages/community/x86_64/viu/).
+```bash
+pacman -S viu
+```
 
 #### NetBSD
 Available in [`graphics/viu`](http://cdn.netbsd.org/pub/pkgsrc/current/pkgsrc/graphics/viu/README.html).
