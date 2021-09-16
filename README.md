@@ -4,6 +4,7 @@
   - [From source (recommended)](#from-source-recommended)
   - [Binary](#binary)
   - [Packages](#packages)
+    - [MacOS](#macos)
     - [Arch Linux](#arch-linux)
     - [NetBSD](#netbsd)
 - [Usage](#usage)
