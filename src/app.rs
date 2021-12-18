@@ -173,7 +173,7 @@ fn try_print_gif<R: Read>(conf: &Config, input_stream: R, (tx, rx): TxRx) -> Viu
     'infinite: loop {
         let mut iter = resized_frames.iter().peekable();
         while let Some((delay, frame)) = iter.next() {
-            let (_print_width, print_height) = viuer::print(&frame, &conf.viuer_config)?;
+            let (_print_width, print_height) = viuer::print(frame, &conf.viuer_config)?;
 
             if conf.static_gif {
                 break 'infinite;
