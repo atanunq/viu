@@ -116,23 +116,21 @@ only if both options **-w** and **-h** are used together.
 ### Command line options
 ```
 USAGE:
-    viu [FLAGS] [OPTIONS] [FILE]...
-    When FILE is -, read standard input.
-
-FLAGS:
-    -b, --blocks         Force block output
-    -m, --mirror         Display a mirror of the original image
-    -n, --name           Output the name of the file before displaying
-    -1, --once           Only loop once through the animation
-    -r, --recursive      Recurse down directories if passed one
-    -s, --static         Show only first frame of gif
-    -t, --transparent    Display transparent image with transparent background
-
-OPTIONS:
-    -f, --frame-rate <frames-per-second>    Play gif at the given frame rate
-    -h, --height <height>    Resize the image to a provided height
-    -w, --width <width>      Resize the image to a provided width
+    viu [OPTIONS] [FILE]...
 
 ARGS:
-    <FILE>...    The image to be displayed
+    <FILE>...    The images to be displayed. Set to - for standard input.
+
+OPTIONS:
+        --help                              Print help information
+    -1, --once                              Only loop once through the animation
+    -b, --blocks                            Force block output
+    -n, --name                              Output the name of the file before displaying
+    -r, --recursive                         Recurse down directories if passed one
+    -s, --static                            Show only first frame of gif
+    -t, --transparent                       Display transparent image with transparent background
+    -V, --version                           Print version information
+    -w, --width <width>                     Resize the image to a provided width
+    -h, --height <height>                   Resize the image to a provided height
+    -f, --frame-rate <frames-per-second>    Play gif at the given frame rate
 ```

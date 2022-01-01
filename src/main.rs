@@ -13,7 +13,7 @@ fn main() {
         .setting(ArgRequiredElseHelp)
         .arg(
             Arg::new("FILE")
-                .help("The image to be displayed. Set to - for standad input.")
+                .help("The images to be displayed. Set to - for standard input.")
                 .multiple_values(true),
         )
         .arg(
@@ -21,12 +21,6 @@ fn main() {
                 .short('n')
                 .long("name")
                 .help("Output the name of the file before displaying"),
-        )
-        .arg(
-            Arg::new("mirror")
-                .short('m')
-                .long("mirror")
-                .help("Display a mirror of the original image"),
         )
         .arg(
             Arg::new("transparent")

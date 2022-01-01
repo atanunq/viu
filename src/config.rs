@@ -6,7 +6,6 @@ pub struct Config<'a> {
     pub files: Vec<&'a str>,
     pub loop_gif: bool,
     pub name: bool,
-    pub mirror: bool,
     pub recursive: bool,
     pub static_gif: bool,
     pub viuer_config: ViuerConfig,
@@ -16,12 +15,12 @@ pub struct Config<'a> {
 impl<'a> Config<'a> {
     pub fn new(matches: &'a ArgMatches) -> Config<'a> {
         let width = if matches.is_present("width") {
-            Some(matches.value_of_t("width").unwrap_or_else(|e| e.exit()))
+            Some(matches.value_of_t_or_exit("width"))
         } else {
             None
         };
         let height = if matches.is_present("height") {
-            Some(matches.value_of_t("height").unwrap_or_else(|e| e.exit()))
+            Some(matches.value_of_t_or_exit("height"))
         } else {
             None
         };
@@ -52,10 +51,8 @@ impl<'a> Config<'a> {
         };
 
         let frame_duration = if matches.is_present("frames-per-second") {
-            let frame_rate: f32 = matches
-                .value_of_t("frames-per-second")
-                .unwrap_or_else(|e| e.exit());
-            Some(Duration::from_secs_f32(1.0 / frame_rate))
+            let frame_rate: u16 = matches.value_of_t_or_exit("frames-per-second");
+            Some(Duration::from_secs_f32(1.0 / frame_rate as f32))
         } else {
             None
         };
@@ -63,7 +60,6 @@ impl<'a> Config<'a> {
             files,
             loop_gif,
             name: matches.is_present("name"),
-            mirror: matches.is_present("mirror"),
             recursive: matches.is_present("recursive"),
             static_gif,
             viuer_config,
@@ -76,7 +72,6 @@ impl<'a> Config<'a> {
             files: vec![],
             loop_gif: true,
             name: false,
-            mirror: false,
             recursive: false,
             static_gif: false,
             viuer_config: ViuerConfig {
