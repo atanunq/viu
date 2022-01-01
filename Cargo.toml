@@ -12,7 +12,7 @@ keywords = ["terminal", "image", "gif"]
 exclude = ["/img", "/.github"]
 
 [dependencies]
-clap = "2.33"
+clap = { version = "3.0", features = ["cargo"] }
 crossterm = "0.22"
 viuer = "0.5"
 ctrlc = { version = "3.1", features = ["termination"] }

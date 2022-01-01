@@ -1,4 +1,4 @@
-use clap::{value_t, ArgMatches};
+use clap::ArgMatches;
 use std::time::Duration;
 use viuer::Config as ViuerConfig;
 
@@ -16,12 +16,12 @@ pub struct Config<'a> {
 impl<'a> Config<'a> {
     pub fn new(matches: &'a ArgMatches) -> Config<'a> {
         let width = if matches.is_present("width") {
-            Some(value_t!(matches, "width", u32).unwrap_or_else(|e| e.exit()))
+            Some(matches.value_of_t("width").unwrap_or_else(|e| e.exit()))
         } else {
             None
         };
         let height = if matches.is_present("height") {
-            Some(value_t!(matches, "height", u32).unwrap_or_else(|e| e.exit()))
+            Some(matches.value_of_t("height").unwrap_or_else(|e| e.exit()))
         } else {
             None
         };
@@ -52,8 +52,9 @@ impl<'a> Config<'a> {
         };
 
         let frame_duration = if matches.is_present("frames-per-second") {
-            let frame_rate =
-                value_t!(matches, "frames-per-second", f32).unwrap_or_else(|e| e.exit());
+            let frame_rate: f32 = matches
+                .value_of_t("frames-per-second")
+                .unwrap_or_else(|e| e.exit());
             Some(Duration::from_secs_f32(1.0 / frame_rate))
         } else {
             None
