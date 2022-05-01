@@ -31,6 +31,7 @@ explanation can be found in this [gist](https://gist.github.com/XVilka/8346728).
 - Accept media through stdin
 - Custom dimensions
 - Transparency
+- Experimental Sixel support (behind the `sixel` feature flag)
 
 ## Installation
 
