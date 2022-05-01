@@ -1,5 +1,4 @@
-use clap::AppSettings::ArgRequiredElseHelp;
-use clap::{crate_description, crate_name, crate_version, App, Arg};
+use clap::{crate_description, crate_name, crate_version, Arg, Command};
 
 mod app;
 mod config;
@@ -7,10 +6,10 @@ mod config;
 use config::Config;
 
 fn main() {
-    let matches = App::new(crate_name!())
+    let matches = Command::new(crate_name!())
         .version(crate_version!())
         .about(crate_description!())
-        .setting(ArgRequiredElseHelp)
+        .arg_required_else_help(true)
         .arg(
             Arg::new("FILE")
                 .help("The images to be displayed. Set to - for standard input.")
