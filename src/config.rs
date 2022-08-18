@@ -25,6 +25,18 @@ impl<'a> Config<'a> {
             None
         };
 
+        let x = if matches.is_present("x") {
+            matches.value_of_t_or_exit("x")
+        } else {
+            0
+        };
+
+        let y = if matches.is_present("y") {
+            matches.value_of_t_or_exit("y")
+        } else {
+            0
+        };
+
         let files = match matches.values_of("FILE") {
             None => Vec::new(),
             Some(values) => values.collect(),
@@ -38,11 +50,15 @@ impl<'a> Config<'a> {
 
         let use_blocks = matches.is_present("blocks");
 
+        let absolute_offset = matches.is_present("absolute-offset");
+
         let viuer_config = ViuerConfig {
             transparent,
+            x,
+            y,
             width,
             height,
-            absolute_offset: false,
+            absolute_offset: absolute_offset,
             use_kitty: !use_blocks,
             use_iterm: !use_blocks,
             #[cfg(feature = "sixel")]

@@ -40,6 +40,25 @@ fn main() {
                 .help("Show only first frame of gif"),
         )
         .arg(
+            Arg::new("x")
+                .short('x')
+                .takes_value(true)
+                .help("X offset. Defaults to 0."),
+        )
+        .arg(
+            Arg::new("y")
+                .short('y')
+                .takes_value(true)
+                .help("Y offset. Defaults to 0."),
+        )
+        .arg(
+            Arg::new("absolute-offset")
+                .short('a')
+                .long("absolute-offset")
+                .takes_value(false)
+                .help("Make the x and y offset be relative to the top left terminal corner. If false, the y offset is relative to the cursor's position. Defaults to true."),
+        )
+        .arg(
             Arg::new("width")
                 .short('w')
                 .long("width")
