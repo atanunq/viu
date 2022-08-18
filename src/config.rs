@@ -58,7 +58,7 @@ impl<'a> Config<'a> {
             y,
             width,
             height,
-            absolute_offset: absolute_offset,
+            absolute_offset,
             use_kitty: !use_blocks,
             use_iterm: !use_blocks,
             #[cfg(feature = "sixel")]
