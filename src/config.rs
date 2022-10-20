@@ -14,29 +14,22 @@ pub struct Config<'a> {
 
 impl<'a> Config<'a> {
     pub fn new(matches: &'a ArgMatches) -> Config<'a> {
-        let width = if matches.is_present("width") {
-            Some(matches.value_of_t_or_exit("width"))
-        } else {
-            None
-        };
-        let height = if matches.is_present("height") {
-            Some(matches.value_of_t_or_exit("height"))
-        } else {
-            None
-        };
+        let width = matches.get_one("width").cloned();
+        let height = matches.get_one("height").cloned();
 
-        let files = match matches.values_of("FILE") {
-            None => Vec::new(),
-            Some(values) => values.collect(),
-        };
+        let files: Vec<&str> = matches
+            .get_many::<String>("file")
+            .unwrap_or_default()
+            .map(|s| s.as_str())
+            .collect();
 
-        let once = matches.is_present("once");
-        let static_gif = matches.is_present("static");
+        let once = matches.get_flag("once");
+        let static_gif = matches.get_flag("static");
         let loop_gif = files.len() <= 1 && !once;
 
-        let transparent = matches.is_present("transparent");
+        let transparent = matches.get_flag("transparent");
 
-        let use_blocks = matches.is_present("blocks");
+        let use_blocks = matches.get_flag("blocks");
 
         let viuer_config = ViuerConfig {
             transparent,
@@ -50,17 +43,16 @@ impl<'a> Config<'a> {
             ..Default::default()
         };
 
-        let frame_duration = if matches.is_present("frames-per-second") {
-            let frame_rate: u16 = matches.value_of_t_or_exit("frames-per-second");
-            Some(Duration::from_secs_f32(1.0 / frame_rate as f32))
-        } else {
-            None
-        };
+        let frame_duration: Option<Duration> = matches
+            .get_one::<u8>("frames-per-second")
+            .cloned()
+            .map(|f| Duration::from_secs_f32(1.0 / f as f32));
+
         Config {
             files,
             loop_gif,
-            name: matches.is_present("name"),
-            recursive: matches.is_present("recursive"),
+            name: matches.get_flag("name"),
+            recursive: matches.get_flag("recursive"),
             static_gif,
             viuer_config,
             frame_duration,
