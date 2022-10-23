@@ -24,8 +24,14 @@ impl<'a> Config<'a> {
             .collect();
 
         let absolute_offset = matches.get_flag("absolute-offset");
-        let x: u16 = matches.get_one("x").cloned().expect("X offset must be present");
-        let y: i16 = matches.get_one("y").cloned().expect("Y offset must be present");
+        let x: u16 = matches
+            .get_one("x")
+            .cloned()
+            .expect("X offset must be present");
+        let y: i16 = matches
+            .get_one("y")
+            .cloned()
+            .expect("Y offset must be present");
 
         let use_blocks = matches.get_flag("blocks");
         let transparent = matches.get_flag("transparent");
