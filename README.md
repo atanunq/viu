@@ -116,22 +116,40 @@ only if both options **-w** and **-h** are used together.
 
 ### Command line options
 ```
+View images right from the terminal.
+
 Usage: viu [OPTIONS] [file]...
 
 Arguments:
   [file]...  The images to be displayed. Set to - for standard input.
 
 Options:
-  -w, --width <width>                   Resize the image to a provided width
-  -h, --height <height>                 Resize the image to a provided height
-  -r, --recursive                       Recurse down directories if passed one
-  -b, --blocks                          Force block output
-  -n, --name                            Output the name of the file before displaying
-  -t, --transparent                     Display transparent images with transparent background
-  -f, --frame-rate <frames-per-second>  Play the gif at a given frame rate
-  -1, --once                            Loop only once through the gif
-  -s, --static                          Show only the first frame of the gif
-  -H, --help                            Print help information
-  -V, --version                         Print version information
-
+  -w, --width <width>
+          Resize the image to a provided width
+  -h, --height <height>
+          Resize the image to a provided height
+  -x <x>
+          X offset [default: 0]
+  -y <y>
+          Y offset [default: 0]
+  -a, --absolute-offset
+          Make the x and y offset be relative to the top left terminal corner. If not set, they are relative to the cursor's position.
+  -r, --recursive
+          Recurse down directories if passed one
+  -b, --blocks
+          Force block output
+  -n, --name
+          Output the name of the file before displaying
+  -t, --transparent
+          Display transparent images with transparent background
+  -f, --frame-rate <frames-per-second>
+          Play the gif at a given frame rate
+  -1, --once
+          Loop only once through the gif
+  -s, --static
+          Show only the first frame of the gif
+  -H, --help
+          Print help information
+  -V, --version
+          Print version information
 ```

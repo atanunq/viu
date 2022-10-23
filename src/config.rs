@@ -23,19 +23,26 @@ impl<'a> Config<'a> {
             .map(|s| s.as_str())
             .collect();
 
-        let once = matches.get_flag("once");
-        let static_gif = matches.get_flag("static");
-        let loop_gif = files.len() <= 1 && !once;
-
-        let transparent = matches.get_flag("transparent");
+        let absolute_offset = matches.get_flag("absolute-offset");
+        let x: u16 = matches
+            .get_one("x")
+            .cloned()
+            .expect("X offset must be present");
+        let y: i16 = matches
+            .get_one("y")
+            .cloned()
+            .expect("Y offset must be present");
 
         let use_blocks = matches.get_flag("blocks");
+        let transparent = matches.get_flag("transparent");
 
         let viuer_config = ViuerConfig {
-            transparent,
             width,
             height,
-            absolute_offset: false,
+            x,
+            y,
+            transparent,
+            absolute_offset,
             use_kitty: !use_blocks,
             use_iterm: !use_blocks,
             #[cfg(feature = "sixel")]
@@ -47,6 +54,10 @@ impl<'a> Config<'a> {
             .get_one::<u8>("frames-per-second")
             .cloned()
             .map(|f| Duration::from_secs_f32(1.0 / f as f32));
+
+        let once = matches.get_flag("once");
+        let static_gif = matches.get_flag("static");
+        let loop_gif = files.len() <= 1 && !once;
 
         Config {
             files,

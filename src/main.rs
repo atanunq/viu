@@ -34,6 +34,27 @@ fn main() {
                 .help("Resize the image to a provided height"),
         )
         .arg(
+            Arg::new("x")
+                .short('x')
+                .default_value("0")
+                .value_parser(value_parser!(u16))
+                .help("X offset"),
+        )
+        .arg(
+            Arg::new("y")
+                .short('y')
+                .default_value("0")
+                .value_parser(value_parser!(i16))
+                .help("Y offset"),
+        )
+        .arg(
+            Arg::new("absolute-offset")
+                .short('a')
+                .long("absolute-offset")
+                .action(SetTrue)
+                .help("Make the x and y offset be relative to the top left terminal corner. If not set, they are relative to the cursor's position."),
+        )
+        .arg(
             Arg::new("recursive")
                 .short('r')
                 .long("recursive")
