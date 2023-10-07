@@ -12,10 +12,10 @@ keywords = ["terminal", "image", "gif"]
 exclude = ["/img", "/.github"]
 
 [dependencies]
-clap = { version = "4.0", features = ["cargo"] }
-crossterm = "0.25"
-viuer = "0.7.0"
-ctrlc = { version = "3.1", features = ["termination"] }
+clap = { version = "4.4", features = ["cargo"] }
+crossterm = "0.27"
+viuer = "0.7.1"
+ctrlc = { version = "3.4", features = ["termination"] }
 image = "0.24"
 
 [features]
