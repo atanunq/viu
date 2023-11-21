@@ -68,7 +68,7 @@ brew install viu
 ```
 
 #### Arch Linux
-Available in [`community/viu`](https://archlinux.org/packages/community/x86_64/viu/).
+Available in [`extra/viu`](https://archlinux.org/packages/extra/x86_64/viu/).
 ```bash
 pacman -S viu
 ```
