@@ -59,6 +59,16 @@ A precompiled binary can be downloaded from the [release
 page](https://www.github.com/atanunq/viu/releases/latest).
 GPG fingerprint is B195BADA40BEF20E4907A5AC628280A0217A7B0F.
 
+### Using docker
+
+```bash
+#build
+docker build -t viu --build-arg ARCH=x86_64 .
+
+#run
+docker run -it -v $(pwd):/opt viu /opt/img/bfa.jpg
+```
+
 ### Packages
 
 #### MacOS
