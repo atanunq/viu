@@ -116,7 +116,33 @@ fn view_directory(conf: &Config, dirname: &str, (tx, rx): TxRx) -> ViuResult {
 
 fn view_file(conf: &Config, filename: &str, (tx, rx): TxRx) -> ViuResult {
     if conf.name {
-        println!("{}:", filename);
+        if let Ok(path) = std::fs::canonicalize(filename) {
+            // In principle, we are doing this:
+            // println!("{osc}8;;file://{hostname}{path}{st}{filename}{osc}8;;{st}:", hostname=gethostname().to_string_lossy(), path=path.display());
+            // but without ever putting anything into a utf8 string
+            use bytes::BufMut;
+            use std::os::unix::ffi::OsStrExt;
+            use std::io::Write;
+            let osc = b"\x1b]";
+            let st = b"\x1b\\";
+            let hostname = gethostname::gethostname();
+            let path = path.into_os_string();
+            let len = 23 + hostname.len() + path.len();
+            let mut buf = bytes::BytesMut::with_capacity(len);
+            buf.extend_from_slice(osc);
+            buf.put(&b"8;;file://"[..]);
+            buf.put(hostname.as_bytes());
+            buf.put(path.as_bytes());
+            buf.extend_from_slice(st);
+            buf.put(filename.as_bytes());
+            buf.extend_from_slice(osc);
+            buf.put(&b"8;;"[..]);
+            buf.extend_from_slice(st);
+            buf.put(&b":\n"[..]);
+            stdout().lock().write_all(&buf)?;
+        } else {
+            println!("{filename}:");
+        }
     }
     let mut file_in = fs::File::open(filename)?;
 
