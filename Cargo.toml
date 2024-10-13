@@ -13,10 +13,10 @@ exclude = ["/img", "/.github"]
 
 [dependencies]
 clap = { version = "4.4", features = ["cargo"] }
-crossterm = "0.27"
-viuer = "0.7.1"
+crossterm = { version = "0.28", default-features = false }
+viuer = "0.8"
 ctrlc = { version = "3.4", features = ["termination"] }
-image = "0.24"
+image = "0.25"
 
 [features]
 default = []

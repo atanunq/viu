@@ -3,7 +3,7 @@ use crossterm::terminal::{Clear, ClearType};
 use crossterm::{cursor, execute};
 use image::{codecs::gif::GifDecoder, AnimationDecoder, DynamicImage};
 use std::fs;
-use std::io::{stdin, stdout, BufReader, Error, ErrorKind, Read, Seek};
+use std::io::{stdin, stdout, BufRead, BufReader, Cursor, Error, ErrorKind, Read, Seek};
 use std::sync::mpsc;
 use std::{thread, time::Duration};
 use viuer::ViuResult;
@@ -48,9 +48,10 @@ pub fn run(mut conf: Config) -> ViuResult {
 
         let mut buf: Vec<u8> = Vec::new();
         let _ = handle.read_to_end(&mut buf)?;
+        let cursor = Cursor::new(&buf);
 
         //TODO: print_from_file if data is a gif and terminal is iTerm
-        if try_print_gif(&conf, &buf[..], (&tx_print, &rx_print)).is_err() {
+        if try_print_gif(&conf, cursor, (&tx_print, &rx_print)).is_err() {
             //If stdin data is not a gif, treat it as a regular image
 
             let img = image::load_from_memory(&buf)?;
@@ -143,7 +144,10 @@ fn view_file(conf: &Config, filename: &str, (tx, rx): TxRx) -> ViuResult {
     Ok(())
 }
 
-fn try_print_gif<R: Read>(conf: &Config, input_stream: R, (tx, rx): TxRx) -> ViuResult {
+fn try_print_gif<R>(conf: &Config, input_stream: R, (tx, rx): TxRx) -> ViuResult
+where
+    R: Read + BufRead + Seek,
+{
     //read all frames of the gif and resize them all at once before starting to print them
     let resized_frames: Vec<(Duration, DynamicImage)> = GifDecoder::new(input_stream)?
         .into_frames()
