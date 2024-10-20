@@ -1241,7 +1241,7 @@ checksum = "852e951cb7832cb45cb1169900d19760cfa39b82bc0ea9c0e5a14ae88411c98b"
 
 [[package]]
 name = "viu"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "clap",
  "crossterm",
