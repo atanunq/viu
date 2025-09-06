@@ -20,6 +20,6 @@ image = "0.25.8"
 jxl-oxide = { version = "0.12", features = ["image"], optional = true }
 
 [features]
-default = ["jpegxl"]
+default = []
 sixel = ["viuer/sixel"]
 jpegxl = ["jxl-oxide"]
