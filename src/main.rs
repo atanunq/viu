@@ -6,10 +6,13 @@ use clap::{
 
 mod app;
 mod config;
+mod image_formats;
 
 use config::Config;
 
 fn main() {
+    image_formats::register_image_formats();
+
     let matches = Command::new(crate_name!())
         .version(crate_version!())
         .about(crate_description!())

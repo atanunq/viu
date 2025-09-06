@@ -16,8 +16,10 @@ clap = { version = "4.4", features = ["cargo"] }
 crossterm = { version = "0.28", default-features = false }
 viuer = { version = "0.9", features = ["print-file"] }
 ctrlc = { version = "3.4", features = ["termination"] }
-image = "0.25"
+image = "0.25.8"
+jxl-oxide = { version = "0.12", features = ["image"], optional = true }
 
 [features]
-default = []
+default = ["jpegxl"]
 sixel = ["viuer/sixel"]
+jpegxl = ["jxl-oxide"]
