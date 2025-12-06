@@ -6,6 +6,7 @@ pub struct Config<'a> {
     pub files: Vec<&'a str>,
     pub loop_gif: bool,
     pub name: bool,
+    pub caption: bool,
     pub recursive: bool,
     pub static_gif: bool,
     pub viuer_config: ViuerConfig,
@@ -63,6 +64,7 @@ impl<'a> Config<'a> {
             files,
             loop_gif,
             name: matches.get_flag("name"),
+            caption: matches.get_flag("caption"),
             recursive: matches.get_flag("recursive"),
             static_gif,
             viuer_config,
@@ -75,6 +77,7 @@ impl<'a> Config<'a> {
             files: vec![],
             loop_gif: true,
             name: false,
+            caption: false,
             recursive: false,
             static_gif: false,
             viuer_config: ViuerConfig {

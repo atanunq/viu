@@ -140,6 +140,9 @@ fn view_file(conf: &Config, filename: &str, (tx, rx): TxRx) -> ViuResult {
             viuer::print_from_file(filename, &conf.viuer_config)?;
         }
     }
+    if conf.caption {
+        println!("{}", filename);
+    }
 
     Ok(())
 }
