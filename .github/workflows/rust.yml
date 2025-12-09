@@ -6,11 +6,10 @@ jobs:
   check-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: hecrj/setup-rust-action@master
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          rust-version: stable
           components: clippy, rustfmt
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - name: Format
         run: cargo fmt --all -- --check
       - name: Lint
@@ -49,28 +48,21 @@ jobs:
       - name: Building ${{ matrix.TARGET }}
         run: echo "${{ matrix.TARGET }}"
 
-      - uses: actions/checkout@master
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          target: ${{ matrix.TARGET }}
-          override: true
-
-      - uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: build
-          args: --verbose --release --target=${{ matrix.TARGET }}
+          targets: ${{ matrix.TARGET }}
+      - run: cargo build --verbose --release --target=${{ matrix.TARGET }}
 
       - name: Rename
         run: cp target/${{ matrix.TARGET }}/release/viu${{ matrix.EXTENSION }} viu-${{ matrix.TARGET }}${{ matrix.EXTENSION }}
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: viu-${{ matrix.TARGET }}${{ matrix.EXTENSION }}
           path: viu-${{ matrix.TARGET }}${{ matrix.EXTENSION }}
 
-      - uses: softprops/action-gh-release@v1
+      - uses: softprops/action-gh-release@v2
         name: Upload binaries to release
         if: startsWith(github.ref, 'refs/tags/')
         with:
