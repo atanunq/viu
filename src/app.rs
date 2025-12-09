@@ -38,7 +38,7 @@ pub fn run(mut conf: Config) -> ViuResult {
         }
         std::process::exit(0);
     })
-    .map_err(|_| Error::new(ErrorKind::Other, "Could not setup Ctrl-C handler."))?;
+    .map_err(|_| Error::other("Could not setup Ctrl-C handler."))?;
 
     //TODO: handle multiple files
     //read stdin if only one parameter is passed and it is "-"
@@ -70,7 +70,7 @@ fn view_passed_files(conf: &mut Config, (tx, rx): TxRx) -> ViuResult {
         //check if Ctrl-C has been received. If yes, stop iterating
         if rx.try_recv().is_ok() {
             return tx.send(true).map_err(|_| {
-                Error::new(ErrorKind::Other, "Could not send signal to clean up.").into()
+                Error::other("Could not send signal to clean up.").into()
             });
         };
         //if it's a directory, stop gif looping because there will probably be more files
@@ -91,7 +91,7 @@ fn view_directory(conf: &Config, dirname: &str, (tx, rx): TxRx) -> ViuResult {
         //check if Ctrl-C has been received. If yes, stop iterating
         if rx.try_recv().is_ok() {
             return tx.send(true).map_err(|_| {
-                Error::new(ErrorKind::Other, "Could not send signal to clean up.").into()
+                Error::other("Could not send signal to clean up.").into()
             });
         };
         let dir_entry = dir_entry_result?;
@@ -195,7 +195,7 @@ where
             // terminal from leftover colors
             if rx.try_recv().is_ok() {
                 return tx.send(true).map_err(|_| {
-                    Error::new(ErrorKind::Other, "Could not send signal to clean up.").into()
+                    Error::other("Could not send signal to clean up.").into()
                 });
             };
 
