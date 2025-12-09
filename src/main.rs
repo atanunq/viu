@@ -76,6 +76,13 @@ fn main() {
                 .help("Output the name of the file before displaying"),
         )
         .arg(
+            Arg::new("caption")
+                .short('c')
+                .long("caption")
+                .action(SetTrue)
+                .help("Output the name of the file after displaying"),
+        )
+        .arg(
             Arg::new("transparent")
                 .short('t')
                 .long("transparent")

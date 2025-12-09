@@ -140,6 +140,8 @@ Options:
           Force block output
   -n, --name
           Output the name of the file before displaying
+  -c, --caption
+          Output the name of the file after displaying
   -t, --transparent
           Display transparent images with transparent background
   -f, --frame-rate <frames-per-second>
