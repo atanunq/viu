@@ -49,10 +49,12 @@ jobs:
         run: echo "${{ matrix.TARGET }}"
 
       - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Build binary
+        uses: houseabsolute/actions-rust-cross@v1
         with:
-          targets: ${{ matrix.TARGET }}
-      - run: cargo build --verbose --release --target=${{ matrix.TARGET }}
+          command: build
+          target: ${{ matrix.TARGET }}
+          args: "--verbose --release"
 
       - name: Rename
         run: cp target/${{ matrix.TARGET }}/release/viu${{ matrix.EXTENSION }} viu-${{ matrix.TARGET }}${{ matrix.EXTENSION }}
