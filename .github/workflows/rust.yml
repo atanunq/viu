@@ -28,6 +28,9 @@ jobs:
           - os: macos-latest
             TARGET: x86_64-apple-darwin
 
+          - os: macos-latest
+            TARGET: aarch64-apple-darwin
+
           - os: ubuntu-latest
             TARGET: arm-unknown-linux-musleabihf
 
