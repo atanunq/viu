@@ -1,6 +1,6 @@
 [package]
 name = "viu"
-version = "1.6.0"
+version = "1.6.1"
 authors = ["Atanas Yankov <atanas.yankov98@gmail.com>"]
 edition = "2021"
 license = "MIT"
