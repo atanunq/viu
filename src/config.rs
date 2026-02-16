@@ -9,6 +9,7 @@ pub struct Config<'a> {
     pub caption: bool,
     pub recursive: bool,
     pub static_gif: bool,
+    pub original: bool,
     pub viuer_config: ViuerConfig,
     pub frame_duration: Option<Duration>,
 }
@@ -58,6 +59,7 @@ impl<'a> Config<'a> {
 
         let once = matches.get_flag("once");
         let static_gif = matches.get_flag("static");
+        let original = matches.get_flag("original");
         let loop_gif = files.len() <= 1 && !once;
 
         Config {
@@ -67,6 +69,7 @@ impl<'a> Config<'a> {
             caption: matches.get_flag("caption"),
             recursive: matches.get_flag("recursive"),
             static_gif,
+            original,
             viuer_config,
             frame_duration,
         }
@@ -80,6 +83,7 @@ impl<'a> Config<'a> {
             caption: false,
             recursive: false,
             static_gif: false,
+            original: false,
             viuer_config: ViuerConfig {
                 absolute_offset: false,
                 use_kitty: false,

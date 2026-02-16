@@ -34,6 +34,14 @@ fn main() {
                 .help("Resize the image to a provided height"),
         )
         .arg(
+            Arg::new("original")
+                .short('o')
+                .long("original")
+                .action(SetTrue)
+                .conflicts_with_all(["width", "height"])
+                .help("Display static images at original pixel size on Kitty/Ghostty and iTerm backends"),
+        )
+        .arg(
             Arg::new("x")
                 .short('x')
                 .default_value("0")
