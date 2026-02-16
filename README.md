@@ -128,6 +128,8 @@ Options:
           Resize the image to a provided width
   -h, --height <height>
           Resize the image to a provided height
+  -o, --original
+          Display static images at original pixel size on Kitty/Ghostty and iTerm backends
   -x <x>
           X offset [default: 0]
   -y <y>

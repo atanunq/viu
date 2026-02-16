@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crossterm::terminal::{Clear, ClearType};
+use crossterm::terminal::{window_size, Clear, ClearType, WindowSize};
 use crossterm::{cursor, execute};
 use image::{codecs::gif::GifDecoder, AnimationDecoder, DynamicImage};
 use std::fs;
@@ -55,7 +55,7 @@ pub fn run(mut conf: Config) -> ViuResult {
             //If stdin data is not a gif, treat it as a regular image
 
             let img = image::load_from_memory(&buf)?;
-            viuer::print(&img, &conf.viuer_config)?;
+            print_static_image(&conf, &img)?;
         };
 
         Ok(())
@@ -137,7 +137,7 @@ fn view_file(conf: &Config, filename: &str, (tx, rx): TxRx) -> ViuResult {
         let result = try_print_gif(conf, BufReader::new(file_in), (tx, rx));
         //the provided image is not a gif so try to view it
         if result.is_err() {
-            viuer::print_from_file(filename, &conf.viuer_config)?;
+            print_static_image_from_file(conf, filename)?;
         }
     }
     if conf.caption {
@@ -145,6 +145,58 @@ fn view_file(conf: &Config, filename: &str, (tx, rx): TxRx) -> ViuResult {
     }
 
     Ok(())
+}
+
+fn is_pixel_backend_active(conf: &Config) -> bool {
+    (conf.viuer_config.use_iterm && viuer::is_iterm_supported())
+        || (conf.viuer_config.use_kitty && viuer::get_kitty_support() != viuer::KittySupport::None)
+}
+
+fn original_size_in_cells_for_window(
+    img_width: u32,
+    img_height: u32,
+    terminal: &WindowSize,
+) -> Option<(u32, u32)> {
+    if terminal.width == 0 || terminal.height == 0 || terminal.columns == 0 || terminal.rows == 0 {
+        return None;
+    }
+
+    let width = ((img_width as u64 * terminal.columns as u64) + (terminal.width as u64 / 2))
+        / terminal.width as u64;
+    let height = ((img_height as u64 * terminal.rows as u64) + (terminal.height as u64 / 2))
+        / terminal.height as u64;
+
+    Some((u32::max(1, width as u32), u32::max(1, height as u32)))
+}
+
+fn original_size_in_cells(img: &DynamicImage) -> Option<(u32, u32)> {
+    let terminal = window_size().ok()?;
+    original_size_in_cells_for_window(img.width(), img.height(), &terminal)
+}
+
+fn print_static_image(conf: &Config, img: &DynamicImage) -> ViuResult {
+    if conf.original && is_pixel_backend_active(conf) {
+        let mut viuer_config = conf.viuer_config.clone();
+        if let Some((width, height)) = original_size_in_cells(img) {
+            viuer_config.width = Some(width);
+            viuer_config.height = Some(height);
+        }
+        let _ = viuer::print(img, &viuer_config)?;
+    } else {
+        let _ = viuer::print(img, &conf.viuer_config)?;
+    }
+
+    Ok(())
+}
+
+fn print_static_image_from_file(conf: &Config, filename: &str) -> ViuResult {
+    if conf.original && is_pixel_backend_active(conf) {
+        let img = image::open(filename)?;
+        print_static_image(conf, &img)
+    } else {
+        let _ = viuer::print_from_file(filename, &conf.viuer_config)?;
+        Ok(())
+    }
 }
 
 fn try_print_gif<R>(conf: &Config, input_stream: R, (tx, rx): TxRx) -> ViuResult
@@ -231,5 +283,30 @@ mod test {
         let conf = Config::test_config();
         let (tx, rx) = mpsc::channel();
         view_file(&conf, "img/bfa", (&tx, &rx)).unwrap();
+    }
+
+    #[test]
+    fn test_original_size_in_cells_for_window() {
+        let terminal = WindowSize {
+            columns: 120,
+            rows: 30,
+            width: 960,
+            height: 480,
+        };
+        assert_eq!(
+            original_size_in_cells_for_window(64, 64, &terminal),
+            Some((8, 4))
+        );
+    }
+
+    #[test]
+    fn test_original_size_in_cells_for_window_with_missing_pixels() {
+        let terminal = WindowSize {
+            columns: 120,
+            rows: 30,
+            width: 0,
+            height: 0,
+        };
+        assert_eq!(original_size_in_cells_for_window(64, 64, &terminal), None);
     }
 }
