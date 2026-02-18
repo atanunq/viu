@@ -1,7 +1,7 @@
 use clap::{
     crate_description, crate_name, crate_version, value_parser, Arg,
     ArgAction::{Append, Help, SetTrue},
-    Command,
+    ArgGroup, Command,
 };
 
 mod app;
@@ -10,7 +10,7 @@ mod config;
 use config::Config;
 
 fn main() {
-    let matches = Command::new(crate_name!())
+    let mut arg_build = Command::new(crate_name!())
         .version(crate_version!())
         .about(crate_description!())
         .arg_required_else_help(true)
@@ -67,7 +67,25 @@ fn main() {
                 .long("blocks")
                 .action(SetTrue)
                 .help("Force block output"),
-        )
+        );
+
+    let mut output_group = ArgGroup::new("output")
+        .arg("blocks")
+        .multiple(false)
+        .required(false);
+
+    if cfg!(any(feature = "sixel", feature = "icy_sixel")) {
+        arg_build = arg_build.arg(
+            Arg::new("sixel")
+                .long("sixel")
+                .action(SetTrue)
+                .help("Force sixel output"),
+        );
+        output_group = output_group.arg("sixel");
+    }
+
+    arg_build = arg_build
+        .group(output_group)
         .arg(
             Arg::new("name")
                 .short('n')
@@ -117,8 +135,9 @@ fn main() {
                 .long("help")
                 .action(Help)
                 .help("Print help information"),
-        )
-        .get_matches();
+        );
+
+    let matches = arg_build.get_matches();
 
     let conf = Config::new(&matches);
 
