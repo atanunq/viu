@@ -50,10 +50,12 @@ impl<'a> Config<'a> {
             y,
             transparent,
             absolute_offset,
-            use_kitty: (!use_blocks && !use_sixel),
-            use_iterm: (!use_blocks && !use_sixel),
+            // if flag `use_blocks` or `use_sixel` is set, return false
+            use_kitty: (!use_blocks || !use_sixel),
+            use_iterm: (!use_blocks || !use_sixel),
             #[cfg(any(feature = "sixel", feature = "icy_sixel"))]
-            use_sixel: (!use_blocks && use_sixel),
+            // just `use_sixel` is set and `use_blocks` is not set, return true
+            use_sixel: (use_sixel && !use_blocks),
             ..Default::default()
         };
 
