@@ -1,5 +1,5 @@
 use clap::ArgMatches;
-use std::{process::exit, time::Duration};
+use std::time::Duration;
 use viuer::Config as ViuerConfig;
 
 pub struct Config<'a> {
@@ -35,12 +35,14 @@ impl<'a> Config<'a> {
             .expect("Y offset must be present");
 
         let use_blocks = matches.get_flag("blocks");
-        let use_sixel = matches.get_flag("sixel");
-        if use_blocks && use_sixel {
-            println!("The --blocks and --sixel options cannot be used together.");
-            exit(1)
-        }
 
+        #[cfg(any(feature = "sixel", feature = "icy_sixel"))]
+        let use_sixel = matches.get_flag("sixel");
+
+        #[cfg(any(feature = "sixel", feature = "icy_sixel"))]
+        if use_blocks && use_sixel {
+            panic!("Internal error: both --blocks and --sixel options are set, but they are defined as mutually exclusive and clap should have prevented this state");
+        }
         let transparent = matches.get_flag("transparent");
 
         let viuer_config = ViuerConfig {
@@ -51,8 +53,16 @@ impl<'a> Config<'a> {
             transparent,
             absolute_offset,
             // if flag `use_blocks` or `use_sixel` is set, return false
+            #[cfg(any(feature = "sixel", feature = "icy_sixel"))]
             use_kitty: (!use_blocks || !use_sixel),
+            #[cfg(not(any(feature = "sixel", feature = "icy_sixel")))]
+            use_kitty: (!use_blocks),
+
+            #[cfg(any(feature = "sixel", feature = "icy_sixel"))]
             use_iterm: (!use_blocks || !use_sixel),
+            #[cfg(not(any(feature = "sixel", feature = "icy_sixel")))]
+            use_iterm: (!use_blocks),
+
             #[cfg(any(feature = "sixel", feature = "icy_sixel"))]
             // just `use_sixel` is set and `use_blocks` is not set, return true
             use_sixel: (use_sixel && !use_blocks),

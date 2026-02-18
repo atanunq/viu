@@ -1,7 +1,7 @@
 use clap::{
     crate_description, crate_name, crate_version, value_parser, Arg,
     ArgAction::{Append, Help, SetTrue},
-    Command,
+    ArgGroup, Command,
 };
 
 mod app;
@@ -60,26 +60,32 @@ fn main() {
                 .long("recursive")
                 .action(SetTrue)
                 .help("Recurse down directories if passed one"),
-        );
-
-    if cfg!(feature = "sixel") {
-        arg_build = arg_build.arg(
-            Arg::new("sixel")
-                .short('s')
-                .long("sixel")
-                .action(SetTrue)
-                .help("Force sixel output"),
-        );
-    }
-
-    arg_build = arg_build
+        )
         .arg(
             Arg::new("blocks")
                 .short('b')
                 .long("blocks")
                 .action(SetTrue)
                 .help("Force block output"),
-        )
+        );
+
+    let mut output_group = ArgGroup::new("output")
+        .arg("blocks")
+        .multiple(false)
+        .required(false);
+
+    if cfg!(any(feature = "sixel", feature = "icy_sixel")) {
+        arg_build = arg_build.arg(
+            Arg::new("sixel")
+                .long("sixel")
+                .action(SetTrue)
+                .help("Force sixel output"),
+        );
+        output_group = output_group.arg("sixel");
+    }
+
+    arg_build = arg_build
+        .group(output_group)
         .arg(
             Arg::new("name")
                 .short('n')
