@@ -1,5 +1,5 @@
 use clap::ArgMatches;
-use std::time::Duration;
+use std::{process::exit, time::Duration};
 use viuer::Config as ViuerConfig;
 
 pub struct Config<'a> {
@@ -35,6 +35,12 @@ impl<'a> Config<'a> {
             .expect("Y offset must be present");
 
         let use_blocks = matches.get_flag("blocks");
+        let use_sixel = matches.get_flag("sixel");
+        if use_blocks && use_sixel {
+            println!("The --blocks and --sixel options cannot be used together.");
+            exit(1)
+        }
+
         let transparent = matches.get_flag("transparent");
 
         let viuer_config = ViuerConfig {
@@ -44,10 +50,10 @@ impl<'a> Config<'a> {
             y,
             transparent,
             absolute_offset,
-            use_kitty: !use_blocks,
-            use_iterm: !use_blocks,
+            use_kitty: (!use_blocks && !use_sixel),
+            use_iterm: (!use_blocks && !use_sixel),
             #[cfg(any(feature = "sixel", feature = "icy_sixel"))]
-            use_sixel: !use_blocks,
+            use_sixel: (!use_blocks && use_sixel),
             ..Default::default()
         };
 

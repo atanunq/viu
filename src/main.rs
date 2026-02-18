@@ -10,7 +10,7 @@ mod config;
 use config::Config;
 
 fn main() {
-    let matches = Command::new(crate_name!())
+    let mut arg_build = Command::new(crate_name!())
         .version(crate_version!())
         .about(crate_description!())
         .arg_required_else_help(true)
@@ -60,7 +60,19 @@ fn main() {
                 .long("recursive")
                 .action(SetTrue)
                 .help("Recurse down directories if passed one"),
-        )
+        );
+
+    if cfg!(feature = "sixel") {
+        arg_build = arg_build.arg(
+            Arg::new("sixel")
+                .short('s')
+                .long("sixel")
+                .action(SetTrue)
+                .help("Force sixel output"),
+        );
+    }
+
+    arg_build = arg_build
         .arg(
             Arg::new("blocks")
                 .short('b')
@@ -117,8 +129,9 @@ fn main() {
                 .long("help")
                 .action(Help)
                 .help("Print help information"),
-        )
-        .get_matches();
+        );
+
+    let matches = arg_build.get_matches();
 
     let conf = Config::new(&matches);
 
