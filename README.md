@@ -31,7 +31,7 @@ explanation can be found in this [gist](https://gist.github.com/XVilka/8346728).
 - Accept media through stdin
 - Custom dimensions
 - Transparency
-- Experimental Sixel support (behind either `sixel` or `icy_sixel` feature flags)
+- Sixel support (pure-Rust `icy_sixel` backend enabled by default; the libsixel-based `sixel` feature remains opt-in, and `--no-default-features` disables Sixel entirely)
 
 ## Installation
 
