@@ -27,7 +27,7 @@ explanation can be found in this [gist](https://gist.github.com/XVilka/8346728).
 
 ## Features
 - Native iTerm and Kitty support
-- Animated GIF support
+- Animated GIF, SVG support
 - Accept media through stdin
 - Custom dimensions
 - Transparency
