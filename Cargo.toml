@@ -17,8 +17,14 @@ crossterm = { version = "0.29", default-features = false }
 viuer = { version = "0.11", features = ["print-file"] }
 ctrlc = { version = "3.4", features = ["termination"] }
 image = "0.25"
+resvg = "0.48"
 
 [features]
 default = []
 sixel = ["viuer/sixel"]
 icy_sixel = ["viuer/icy_sixel"]
+
+[profile.release]
+lto = true
+strip = true
+panic = "abort"

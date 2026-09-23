@@ -1,9 +1,9 @@
 use crate::config::Config;
 use crossterm::terminal::{Clear, ClearType};
 use crossterm::{cursor, execute};
-use image::{codecs::gif::GifDecoder, AnimationDecoder, DynamicImage};
-use std::fs;
-use std::io::{stdin, stdout, BufRead, BufReader, Cursor, Error, ErrorKind, Read, Seek};
+use image::{codecs::gif::GifDecoder, AnimationDecoder, DynamicImage, RgbaImage};
+use std::fs::{self, File};
+use std::io::{self, stdin, stdout, BufRead, BufReader, Cursor, Error, ErrorKind, Read, Seek};
 use std::sync::mpsc;
 use std::{thread, time::Duration};
 use viuer::ViuResult;
@@ -121,25 +121,33 @@ fn view_file(conf: &Config, filename: &str, (tx, rx): TxRx) -> ViuResult {
     }
     let mut file_in = fs::File::open(filename)?;
 
-    // Read some of the first bytes to guess the image format
-    let mut format_guess_buf: [u8; 20] = [0; 20];
-    let _ = file_in.read(&mut format_guess_buf)?;
-    // Reset the cursor
-    file_in.seek(std::io::SeekFrom::Start(0))?;
-
-    // If the file is a gif, let iTerm handle it natively
-    if conf.viuer_config.use_iterm
-        && viuer::is_iterm_supported()
-        && (image::guess_format(&format_guess_buf[..])?) == image::ImageFormat::Gif
+    if std::path::Path::new(filename)
+        .extension()
+        .is_some_and(|ext| ext == "svg")
     {
-        viuer::print_from_file(filename, &conf.viuer_config)?;
+        print_svg(conf, &mut file_in)?;
     } else {
-        let result = try_print_gif(conf, BufReader::new(file_in), (tx, rx));
-        //the provided image is not a gif so try to view it
-        if result.is_err() {
+        // Read some of the first bytes to guess the image format
+        let mut format_guess_buf: [u8; 20] = [0; 20];
+        let _ = file_in.read(&mut format_guess_buf)?;
+        // Reset the cursor
+        file_in.seek(std::io::SeekFrom::Start(0))?;
+
+        // If the file is a gif, let iTerm handle it natively
+        if conf.viuer_config.use_iterm
+            && viuer::is_iterm_supported()
+            && (image::guess_format(&format_guess_buf[..])?) == image::ImageFormat::Gif
+        {
             viuer::print_from_file(filename, &conf.viuer_config)?;
+        } else {
+            let result = try_print_gif(conf, BufReader::new(file_in), (tx, rx));
+            //the provided image is not a gif so try to view it
+            if result.is_err() {
+                viuer::print_from_file(filename, &conf.viuer_config)?;
+            }
         }
     }
+
     if conf.caption {
         println!("{}", filename);
     }
@@ -219,6 +227,44 @@ where
             break 'infinite;
         }
     }
+    Ok(())
+}
+
+// Most of this function is just working around the resvg::render api.
+fn print_svg(conf: &Config, file: &mut File) -> ViuResult {
+    use resvg::{
+        render,
+        tiny_skia::Pixmap,
+        usvg::{Options, Size, Tree},
+    };
+
+    let mut buf = Vec::with_capacity(1024);
+    file.read_to_end(&mut buf)?;
+
+    let tree = Tree::from_data(
+        &buf,
+        &Options {
+            default_size: Size::from_wh(1000.0, 1000.0).unwrap(),
+            ..Default::default()
+        },
+    )
+    .map_err(io::Error::other)?;
+
+    // Free up memory early
+    drop(buf);
+
+    let size = tree.size();
+    let mut pixmap = Pixmap::new(size.width() as u32, size.height() as u32)
+        .expect("unable to create buffer: too large");
+
+    render(&tree, Default::default(), &mut pixmap.as_mut());
+
+    let image = DynamicImage::from(
+        RgbaImage::from_vec(pixmap.width(), pixmap.height(), pixmap.take()).unwrap(),
+    );
+
+    viuer::print(&image, &conf.viuer_config)?;
+
     Ok(())
 }
 
