@@ -10,6 +10,9 @@ mod config;
 use config::Config;
 
 fn main() {
+    #[cfg(feature = "heif")]
+    libheif_rs::integration::image::register_all_decoding_hooks();
+
     let matches = Command::new(crate_name!())
         .version(crate_version!())
         .about(crate_description!())
