@@ -32,6 +32,7 @@ explanation can be found in this [gist](https://gist.github.com/XVilka/8346728).
 - Custom dimensions
 - Transparency
 - Experimental Sixel support (behind either `sixel` or `icy_sixel` feature flags)
+- HEIF/HEIC and AVIF through the system's libheif (behind the `heif` feature flag)
 
 ## Installation
 
@@ -52,6 +53,12 @@ viu img/giphy.gif
 Or without cloning:
 ```bash
 cargo install viu
+```
+
+To support viewing HEIF/HEIC images, install libheif 1.17 or newer and enable
+the `heif` feature:
+```bash
+cargo install viu --features heif
 ```
 
 ### Binary
