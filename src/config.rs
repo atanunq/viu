@@ -1,4 +1,4 @@
-use clap::ArgMatches;
+use clap::{value_parser, Arg, ArgMatches};
 use std::time::Duration;
 use viuer::Config as ViuerConfig;
 
@@ -11,6 +11,14 @@ pub struct Config<'a> {
     pub static_gif: bool,
     pub viuer_config: ViuerConfig,
     pub frame_duration: Option<Duration>,
+}
+
+pub fn frame_rate_arg() -> Arg {
+    Arg::new("frames-per-second")
+        .short('f')
+        .long("frame-rate")
+        .value_parser(value_parser!(u8).range(1..))
+        .help("Play the gif at a given frame rate")
 }
 
 impl<'a> Config<'a> {
@@ -87,5 +95,23 @@ impl<'a> Config<'a> {
             },
             frame_duration: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::frame_rate_arg;
+    use clap::Command;
+
+    #[test]
+    fn frame_rate_parser_rejects_zero() {
+        let command = Command::new("viu").arg(frame_rate_arg());
+        assert!(command
+            .clone()
+            .try_get_matches_from(["viu", "--frame-rate", "0"])
+            .is_err());
+        assert!(command
+            .try_get_matches_from(["viu", "--frame-rate", "1"])
+            .is_ok());
     }
 }

@@ -89,13 +89,7 @@ fn main() {
                 .action(SetTrue)
                 .help("Display transparent images with transparent background"),
         )
-        .arg(
-            Arg::new("frames-per-second")
-                .short('f')
-                .long("frame-rate")
-                .value_parser(value_parser!(u8))
-                .help("Play the gif at a given frame rate"),
-        )
+        .arg(config::frame_rate_arg())
         .arg(
             Arg::new("once")
                 .short('1')
